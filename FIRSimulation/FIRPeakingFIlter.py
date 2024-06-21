@@ -1,7 +1,10 @@
+# 计算方式在内部开源文章 https://e.gitee.com/maonog/docs/2431700/file/5661629?sub_id=11105595&scope=root 请勿外传
 import numpy as np
 import scipy.signal as signal
 import matplotlib.pyplot as plt
-
+from pylab import mpl
+mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei'] # 指定默认字体：解决plot不能显示中文问题
+mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
 def design_peaking_eq(f0, fs, Q, gain, N):
     """
     设计一个Peaking EQ类型的FIR滤波器
@@ -41,8 +44,8 @@ def design_peaking_eq(f0, fs, Q, gain, N):
 
 # 参数设置
 f0 = 1000  # 中心频率 (Hz)
-fs = 8000  # 采样率 (Hz)
-Q = 2  # Q值
+fs = 96000  # 采样率 (Hz)
+Q = 1  # Q值
 gain = 6  # 增益 (dB)
 N = 101  # 滤波器长度
 
@@ -58,7 +61,7 @@ H_dB = 20 * np.log10(np.abs(H))
 plt.figure(figsize=(12, 6))
 
 plt.subplot(2, 1, 1)
-plt.stem(np.arange(N), h, use_line_collection=True)
+plt.stem(np.arange(N), h)
 plt.title('时域脉冲响应')
 plt.xlabel('样本点')
 plt.ylabel('幅度')
