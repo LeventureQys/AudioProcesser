@@ -20,8 +20,8 @@ def peaking_filter(f0, Fs, G, Q):
     return b, a
 
 # Input parameters
-f0 = 10000      # Center frequency in Hz
-Fs = 96000     # Sampling rate in Hz
+f0 = 20      # Center frequency in Hz
+Fs = 100     # Sampling rate in Hz
 G = 6          # Gain in dB
 Q = 1          # Quality factor
 
@@ -41,6 +41,6 @@ plt.ylabel('Gain (dB)')
 plt.title('Frequency Response of FIR Peaking Filter')
 plt.grid()
 plt.legend()
-plt.xlim(0, 96000)
+plt.xlim(0, 1000)
 plt.ylim(-15, 15)
 plt.show()

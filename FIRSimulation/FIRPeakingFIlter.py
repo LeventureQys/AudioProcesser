@@ -1,76 +1,53 @@
-# 计算方式在内部开源文章 https://e.gitee.com/maonog/docs/2431700/file/5661629?sub_id=11105595&scope=root 请勿外传
 import numpy as np
-import scipy.signal as signal
 import matplotlib.pyplot as plt
-from pylab import mpl
-mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei'] # 指定默认字体：解决plot不能显示中文问题
-mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
-def design_peaking_eq(f0, fs, Q, gain, N):
-    """
-    设计一个Peaking EQ类型的FIR滤波器
-    
-    参数:
-    f0 (float): 中心频率 (Hz)
-    fs (float): 采样率 (Hz)
-    Q (float): Q值
-    gain (float): 增益 (dB)
-    N (int): 滤波器长度
-    
-    返回:
-    h (numpy array): 滤波器系数
-    """
-    
-    # 将增益转换为线性标度
-    A = 10**(gain / 40)
-    
-    # 计算归一化中心频率和带宽
-    f0_norm = f0 / fs
-    BW = f0 / Q
-    BW_norm = BW / fs
+from scipy.signal import freqz, firwin2
 
-    # 理想脉冲响应
-    n = np.arange(N)
-    alpha = (N - 1) / 2
-    h_d = A * (np.sinc(2 * BW_norm * (n - alpha)) * 
-               np.cos(2 * np.pi * f0_norm * (n - alpha)))
+def peaking_fir_filter(f0, Fs, G, Q, N):
+    # Normalize the center frequency with respect to the Nyquist frequency
+    nyquist = 0.5 * Fs
+    f0_normalized = f0 / nyquist
     
-    # 汉明窗口
-    w = 0.54 - 0.46 * np.cos(2 * np.pi * n / (N - 1))
+    # Calculate bandwidth in normalized frequency
+    bandwidth = f0 / Q
+    bandwidth_normalized = bandwidth / nyquist
     
-    # 应用窗口函数
-    h = h_d * w
+    # Calculate the gain in linear scale
+    A = 10**(G / 20)
+    
+    # Frequency points for the desired response
+    freqs = [0, f0_normalized - bandwidth_normalized / 2, f0_normalized, f0_normalized + bandwidth_normalized / 2, 1]
+    
+    # Desired gain at the frequency points
+    gains = [1, 1, A, 1, 1]
+    
+    # Design the FIR filter using firwin2
+    h = firwin2(N, freqs, gains, window='hamming')
     
     return h
 
-# 参数设置
-f0 = 1000  # 中心频率 (Hz)
-fs = 96000  # 采样率 (Hz)
-Q = 1  # Q值
-gain = 6  # 增益 (dB)
-N = 101  # 滤波器长度
+# Input parameters
+f0 = 100     # Center frequency in Hz
+Fs = 1000    # Sampling rate in Hz
+G = 6         # Gain in dB
+Q = 1         # Quality factor
+N = 101       # Filter order (ensure it's odd)
 
-# 设计滤波器
-h = design_peaking_eq(f0, fs, Q, gain, N)
+# Get filter coefficients
+h = peaking_fir_filter(f0, Fs, G, Q, N)
 
-# 频率响应
-H = np.fft.fft(h, 1024)
-H = np.fft.fftshift(H)  # 移动零频到中心
-H_dB = 20 * np.log10(np.abs(H))
+# Frequency response
+w, H = freqz(h, worN=8000)
+frequencies = w * Fs / (2 * np.pi)
+response = 20 * np.log10(np.abs(H))
 
-# 绘制时域和频域响应
-plt.figure(figsize=(12, 6))
-
-plt.subplot(2, 1, 1)
-plt.stem(np.arange(N), h)
-plt.title('时域脉冲响应')
-plt.xlabel('样本点')
-plt.ylabel('幅度')
-
-plt.subplot(2, 1, 2)
-f = np.linspace(-0.5, 0.5, len(H))
-plt.plot(f, H_dB)
-plt.title('频域响应')
-plt.xlabel('归一化频率')
-plt.ylabel('幅度 (dB)')
+# Plot frequency response
+plt.figure(figsize=(10, 6))
+plt.plot(frequencies, response, label='Peaking Filter Response')
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Gain (dB)')
+plt.title('Frequency Response of Peaking Filter')
 plt.grid()
+plt.legend()
+plt.xlim(0, 1000)
+plt.ylim(-10, 10)
 plt.show()
