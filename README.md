@@ -10,7 +10,7 @@ FIRSimulation中的内容为Python对FIR滤波器的仿真，使用Python的scip
 先见博客：https://blog.csdn.net/Andius/article/details/139867951?spm=1001.2014.3001.5502
 
 1. IIR Peaking Filter 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/a05a3e5069ee4b54842fd9b692e65124.png)
+![](https://5935-2-1320621260.cos.ap-guangzhou.myqcloud.com/img/86b5b7cad1c8a786895de0617009c93d71cf5090.jpg)
 
 
 2. IIR LowShelf Filter 
