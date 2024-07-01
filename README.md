@@ -10,31 +10,34 @@ FIRSimulation中的内容为Python对FIR滤波器的仿真，使用Python的scip
 先见博客：https://blog.csdn.net/Andius/article/details/139867951?spm=1001.2014.3001.5502
 
 1. IIR Peaking Filter 
-![](https://gitee.com/Leventure/picture-bed/raw/master/企业微信截图_17189616235598.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142435.png"/>
 
 
 2. IIR LowShelf Filter 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/449c8fad9b2547698d816a7e1d921774.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142609.png"/>
 3. IIR HighShelf Filter
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/b9c5e6637aee4787be9f539f1601b4a4.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142638.png"/>
+
 4. IIR LowPassFilter 
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/9d2e7c66f0ae4e24a9500f2682834b68.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142709.png"/>
+
 5. IIR HighPass Filter
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/6e1f05dfb66842c79bf292b1961071fe.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142737.png"/>
 
 6. FIR PeakingFilter
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/cbebe1f6f1414b8da4d7f492004534fe.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142803.png"/>
+
 7. FIR LowShelf Filter
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/8053e1da76474b9ba7fd139f8aae773b.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142827.png"/>
 8. FIR HighShelf Filter
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/d80907ebb4a34a119ca8d3d5380483a0.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142903.png"/>
 8. FIR LowPass Filter 
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/78294ff5eeec4fc78a77f7cefb5c7d41.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142928.png"/>
  10. FIR HighPass Filter
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/direct/19b5b14f2a644948b381856183531d15.png)
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142948.png"/>
