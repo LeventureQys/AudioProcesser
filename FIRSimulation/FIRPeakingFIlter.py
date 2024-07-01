@@ -26,7 +26,7 @@ def peaking_fir_filter(f0, Fs, G, Q, N):
     return h
 
 # Input parameters
-f0 = 100     # Center frequency in Hz
+f0 = 200     # Center frequency in Hz
 Fs = 1000    # Sampling rate in Hz
 G = 6         # Gain in dB
 Q = 1         # Quality factor
