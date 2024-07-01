@@ -5,9 +5,6 @@ FIR滤波器仿真与计算核心，使用纯C++开发，Qt界面做显示
 
 FIRSimulation中的内容为Python对FIR滤波器的仿真，使用Python的scipy库，其中包括各种类型的滤波器，包括Peaking、Low-Pass、High-Pass、Band-Pass、High Shelf,Low ShelfNotch等
 
-没搞图床，以后有空搞图床咯，
-
-先见博客：https://blog.csdn.net/Andius/article/details/139867951?spm=1001.2014.3001.5502
 
 1. IIR Peaking Filter 
 <img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142435.png"/>
