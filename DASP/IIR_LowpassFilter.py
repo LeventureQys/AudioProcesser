@@ -11,8 +11,8 @@ import scipy.io.wavfile as wav
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
 plt.rcParams['axes.unicode_minus'] = False  # 解决坐标轴负号显示问题
 
-# 读取MP3文件并转换为音频信号
-audio = AudioSegment.from_mp3(r'D:\\WorkShop\\CurrentWork\\FIRFilter_Venture\\Audio\\mp3\\2.mp3')
+# 读取MP3文件并转换为音频信号,听我最喜欢的women on the hills
+audio = AudioSegment.from_mp3(r'../Audio/mp3/2.mp3')
 
 # 使用 BytesIO 作为中间缓冲区
 with io.BytesIO() as buf:
