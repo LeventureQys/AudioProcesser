@@ -60,36 +60,37 @@ yf_filtered_signal = 2.0 / N * np.abs(yf_filtered_signal[:N // 2])
 yf_signal_db = 20 * np.log10(yf_signal + np.finfo(float).eps)  # 添加一个很小的值以避免log(0)
 yf_filtered_signal_db = 20 * np.log10(yf_filtered_signal + np.finfo(float).eps)
 
+# 假设 signal, filtered_signal, xf, yf_signal_db, yf_filtered_signal_db, b, a, sampling_rate 已经定义
+
 # 绘制原始信号和滤波后的信号
-plt.figure(figsize=(12, 12))
-plt.subplot(3, 1, 1)
-plt.plot(signal)
-plt.title('原始信号')
-plt.subplot(3, 1, 2)
-plt.plot(filtered_signal)
-plt.title('滤波后的信号')
-plt.xlabel('时间 (样本)')
+fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+
+# 绘制原始信号
+axs[0, 0].plot(signal)
+axs[0, 0].set_title('原始信号')
+
+# 绘制滤波后的信号
+axs[0, 1].plot(filtered_signal)
+axs[0, 1].set_title('滤波后的信号')
+axs[0, 1].set_xlabel('时间 (样本)')
 
 # 绘制频域响应（dB）
-plt.subplot(3, 1, 3)
-plt.plot(xf, yf_signal_db, label='原始信号 (dB)')
-plt.plot(xf, yf_filtered_signal_db, label='滤波后的信号 (dB)')
-plt.title('频域响应 (dB)')
-plt.xlabel('频率 (Hz)')
-plt.ylabel('幅度 (dB)')
-plt.legend()
-
-plt.tight_layout()
-plt.show()
+axs[1, 0].plot(xf, yf_signal_db, label='原始信号 (dB)')
+axs[1, 0].plot(xf, yf_filtered_signal_db, label='滤波后的信号 (dB)')
+axs[1, 0].set_title('频域响应 (dB)')
+axs[1, 0].set_xlabel('频率 (Hz)')
+axs[1, 0].set_ylabel('幅度 (dB)')
+axs[1, 0].legend()
 
 # 计算并绘制IIR滤波器的频率响应
 w, h = freqz(b, a, worN=8000)
-plt.figure(figsize=(8, 6))
-plt.plot(0.5 * sampling_rate * w / np.pi, 20 * np.log10(np.abs(h)), 'b')
-plt.xlim(0,2000)
-plt.ylim(-24,12)
-plt.title('IIR滤波器频率响应')
-plt.xlabel('频率 (Hz)')
-plt.ylabel('幅度 (dB)')
-plt.grid()
+axs[1, 1].plot(0.5 * sampling_rate * w / np.pi, 20 * np.log10(np.abs(h)), 'b')
+axs[1, 1].set_xlim(0, 2000)
+axs[1, 1].set_ylim(-24, 12)
+axs[1, 1].set_title('IIR滤波器频率响应')
+axs[1, 1].set_xlabel('频率 (Hz)')
+axs[1, 1].set_ylabel('幅度 (dB)')
+axs[1, 1].grid()
+
+plt.tight_layout()
 plt.show()
