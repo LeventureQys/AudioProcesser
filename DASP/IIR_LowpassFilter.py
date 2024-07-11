@@ -29,14 +29,19 @@ Filter_w0 = 500  # 滤波器中心频率
 Filter_Q = 1   # 滤波器峰值信噪比
 Filter_T = 1 / sampling_rate  # 滤波器周期
 omega_0 = 2 * np.pi * Filter_w0 / sampling_rate  # 归一化角频率
-alpha = np.sin(omega_0) / (2 * Filter_Q)
+# # 预畸变
+omega_c_t = 2/Filter_T * np.tan(omega_0 / 2)
 
-coeff_b0 = (1 - np.cos(omega_0)) / 2
-coeff_b1 = 1 - np.cos(omega_0)
-coeff_b2 = (1 - np.cos(omega_0)) / 2
-coeff_a0 = 1 + alpha
-coeff_a1 = -2 * np.cos(omega_0)
-coeff_a2 = 1 - alpha
+double_w0T = (omega_c_t**2) * (Filter_T**2)
+ratio_w0t=omega_c_t*Filter_T/Filter_Q
+
+coeff_b0=double_w0T/(4+(2*ratio_w0t)+double_w0T)
+coeff_b1 = 2*coeff_b0
+coeff_b2= coeff_b0
+coeff_a0 = 1.0
+coeff_a1 = 2*(double_w0T - 4.0) / (4+(2*ratio_w0t)+double_w0T)
+coeff_a2 = (4-(2*ratio_w0t)+double_w0T)/((4+(2*ratio_w0t)+double_w0T))
+
 
 # 归一化滤波器系数
 b = [coeff_b0 / coeff_a0, coeff_b1 / coeff_a0, coeff_b2 / coeff_a0]
@@ -85,7 +90,7 @@ axs[1, 0].legend()
 # 计算并绘制IIR滤波器的频率响应
 w, h = freqz(b, a, worN=8000)
 axs[1, 1].plot(0.5 * sampling_rate * w / np.pi, 20 * np.log10(np.abs(h)), 'b')
-axs[1, 1].set_xlim(0, 2000)
+axs[1, 1].set_xlim(0, 1000)
 axs[1, 1].set_ylim(-24, 12)
 axs[1, 1].set_title('IIR滤波器频率响应')
 axs[1, 1].set_xlabel('频率 (Hz)')

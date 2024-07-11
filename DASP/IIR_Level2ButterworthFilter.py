@@ -33,10 +33,11 @@ Filter_T = 1 / sampling_rate  # 滤波器周期
 # 归一化中心频率
 omega_c = 2 * np.pi * Filter_w0 / sampling_rate
 # 预畸变
-omega_c_t = 2 * np.tan(omega_c / 2)
+#omega_c_t = 2/Filter_T * np.tan(omega_c*Filter_T / 2)
+omega_c_t=np.tan(np.pi*Filter_w0/sampling_rate)
 # 计算巴特沃斯滤波器参数
-double_w0 = omega_c**2
-w0Q_rate = omega_c/Filter_Q
+double_w0 = omega_c_t**2
+w0Q_rate = omega_c_t/Filter_Q
 
 coeff_b0 = (double_w0) / (double_w0 + w0Q_rate + 1)
 coeff_b1 = 2*double_w0 / (double_w0 + w0Q_rate + 1)
