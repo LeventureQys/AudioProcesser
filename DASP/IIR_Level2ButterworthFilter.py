@@ -28,42 +28,42 @@ if len(signal.shape) > 1:
 
 # 计算滤波器系数
 Filter_w0 = 500  # 滤波器中心频率
-Filter_Q = 1   # 滤波器峰值信噪比
+Filter_Q = 1 / np.sqrt(2)   # 滤波器峰值信噪比
 Filter_T = 1 / sampling_rate  # 滤波器周期
-
+# 归一化中心频率
+omega_c = 2 * np.pi * Filter_w0 / sampling_rate
+# 预畸变
+omega_c_t = 2 * np.tan(omega_c / 2)
 # 计算巴特沃斯滤波器参数
-# double_w0 = Filter_w0**2
-# w0Q_rate = Filter_w0/Filter_Q
+double_w0 = omega_c**2
+w0Q_rate = omega_c/Filter_Q
 
-# coeff_b0 = (double_w0) / (double_w0 + w0Q_rate + 1)
-# coeff_b1 = 2*double_w0 / (double_w0 + w0Q_rate + 1)
-# coeff_b2 = double_w0 / (double_w0 + w0Q_rate + 1)
-# coeff_a0 = 1
-# coeff_a1 = (2*double_w0 - 2) / (double_w0 + w0Q_rate + 1)
-# coeff_a2 = (double_w0 - w0Q_rate + 1) / (double_w0 + w0Q_rate + 1)
-Filter_w0 = 500;  # 滤波器中心频率
-Filter_Q = 1;     # 滤波器峰值信噪比
-sampling_rate = 44100; # 采样率
-
-omega_0 = 2 * np.pi * Filter_w0 / sampling_rate
-W_0 = 2 * np.tan(omega_0 / 2)
-
-B = W_0 / Filter_Q
-D = W_0 * W_0
-
-a0 = 4 + 2 * B + D
-a1 = 2 * (D - 4)
-a2 = 4 - 2 * B + D
-b0 = D
-b1 = 2 * D
-b2 = D
-
+coeff_b0 = (double_w0) / (double_w0 + w0Q_rate + 1)
+coeff_b1 = 2*double_w0 / (double_w0 + w0Q_rate + 1)
+coeff_b2 = double_w0 / (double_w0 + w0Q_rate + 1)
 coeff_a0 = 1
-coeff_a1 = a1 / a0
-coeff_a2 = a2 / a0
-coeff_b0 = b0 / a0
-coeff_b1 = b1 / a0
-coeff_b2 = b2 / a0
+coeff_a1 = (2*double_w0 - 2) / (double_w0 + w0Q_rate + 1)
+coeff_a2 = (double_w0 - w0Q_rate + 1) / (double_w0 + w0Q_rate + 1)
+
+# omega_0 = 2 * np.pi * Filter_w0 / sampling_rate
+# W_0 = 2 * np.tan(omega_0 / 2)
+
+# B = W_0 / Filter_Q
+# D = W_0 * W_0
+
+# a0 = 4 + 2 * B + D
+# a1 = 2 * (D - 4)
+# a2 = 4 - 2 * B + D
+# b0 = D
+# b1 = 2 * D
+# b2 = D
+
+# coeff_a0 = 1
+# coeff_a1 = a1 / a0
+# coeff_a2 = a2 / a0
+# coeff_b0 = b0 / a0
+# coeff_b1 = b1 / a0
+# coeff_b2 = b2 / a0
 
 # 归一化滤波器系数
 b = [coeff_b0 / coeff_a0, coeff_b1 / coeff_a0, coeff_b2 / coeff_a0]
