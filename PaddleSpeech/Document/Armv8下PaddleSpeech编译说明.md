@@ -1,0 +1,3 @@
+# 前言
+
+部署PaddleSpeech还挺麻烦的，最大的问题其实是现在似乎PaddleSpeech已经停止更新一段时间了
