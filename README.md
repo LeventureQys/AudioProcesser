@@ -14,6 +14,17 @@
 | 几种常见的FIR滤波器实践     | 2024.7.10      | Venture     |
 | 几种常见的IIR滤波器实践     | 2024.7.10       |  Venture      |
 
+# 文件夹说明
+| 文件夹名称   | 内容说明   | 作者    |
+| :-------------: | :-----------: | ------------: |
+|   Audio   | 测试用音频，包括录音和音乐      | Venture     |
+|   DASP   | 音频数字信号处理相关的仿真代码      | Venture     |
+|   DeepFilter   | 机器学习降噪模块Demo      | Venture     |
+|   Document   | 音频数字信号处理相关的笔记，内容比较多，包括中英文参考书籍，提炼的比较精炼      | Venture     |
+| PaddleSpeech     | 音频机器学习框架PaddleSpeech相关内容      | Venture     |
+| RVC     | 基于VITS的RVC模型测试       |  Venture      |
+| WASAPI     | WASAPI实操项目，主要用于后续RealTime驱动开发调研       |  Venture      |
+
 ## 介绍
 FIR滤波器仿真与计算核心，使用纯C++开发，Qt界面做显示
 
