@@ -34,3 +34,5 @@ Document/FilterDesignInfo/~$lter design.docx
 *.pth
 *.pth
 /WASAPI/FirstProject/build
+/DeepFilter/DeepFilter_CPP/build
+/WASAPI/EnumerateDevices/build
