@@ -1,0 +1,11 @@
+prefix=usr/local
+exec_prefix=${prefix}
+libdir=/usr/local/lib64
+includedir=${prefix}/include
+
+Name: libdeepfilter
+Description: Noise supression using deep filtering
+Version: 0.3.2-pre
+Libs: -L${libdir} -ldeepfilter
+Cflags: -I${includedir}/df
+Libs.private:  advapi32.lib cfgmgr32.lib gdi32.lib kernel32.lib msimg32.lib opengl32.lib user32.lib winspool.lib windows.lib bcrypt.lib kernel32.lib advapi32.lib kernel32.lib ntdll.lib userenv.lib ws2_32.lib kernel32.lib ws2_32.lib kernel32.lib msvcrt.lib /defaultlib:msvcrt

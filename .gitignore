@@ -36,3 +36,5 @@ Document/FilterDesignInfo/~$lter design.docx
 /WASAPI/FirstProject/build
 /DeepFilter/DeepFilter_CPP/build
 /WASAPI/EnumerateDevices/build
+/DeepFilterDemo/build
+/WASAPI/AudioCapture/build

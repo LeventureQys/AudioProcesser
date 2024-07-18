@@ -7,6 +7,7 @@
 # 更新说明
 | 更新内容    | 更新时间   | 作者    |
 | :-------------: | :-----------: | ------------: |
+| DeepFilter去除环境音 CLI RealTime| 2024.7.18|Venture|
 |   DeepFilter去除环境音Demo   | 2024.7.15      | Venture     |
 |   WASAPI实践Demo   | 2024.7.15      | Venture     |
 |   基于VITS的RVC语音转换工具实践   | 2024.7.12      | Venture     |
