@@ -38,3 +38,5 @@ Document/FilterDesignInfo/~$lter design.docx
 /WASAPI/EnumerateDevices/build
 /DeepFilterDemo/build
 /WASAPI/AudioCapture/build
+/DeepFilterDemo/Demo/build
+/DeepFilterDemo/RealTimeDemo/RealTimeDemo/build

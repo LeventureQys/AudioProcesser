@@ -1,7 +1,0 @@
-EXPORTS
-	df_create
-	df_free
-	df_get_frame_length
-	df_process_frame
-	df_process_frame_i16
-	df_set_atten_lim
