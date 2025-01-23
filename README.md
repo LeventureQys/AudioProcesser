@@ -15,6 +15,7 @@
 | 几种常见的FIR滤波器实践     | 2024.7.10      | Venture     |
 | 几种常见的IIR滤波器实践     | 2024.7.10       |  Venture      |
 | 谱减法示例|2024.10.30 | Venture|
+| webrtc的降噪方案 | 2025.1.23 | Venture |
 
 # 文件夹说明
 | 文件夹名称   | 内容说明   | 作者    |
@@ -27,6 +28,7 @@
 | RVC     | 基于VITS的RVC模型测试       |  Venture      |
 | WASAPI     | WASAPI实操项目，主要用于后续RealTime驱动开发调研       |  Venture      |
 | NoisyPrint|谱减法示例 | Venture|
+| Webrtc_NoisyReduce| WebRtc降噪模块 | Venture |
 
 ## 介绍
 FIR滤波器仿真与计算核心，使用纯C++开发，Qt界面做显示
