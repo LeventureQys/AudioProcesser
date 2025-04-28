@@ -30,6 +30,7 @@
 | WASAPI     | WASAPI实操项目，主要用于后续RealTime驱动开发调研       |  Venture      |
 | NoisyPrint|谱减法示例 | Venture|
 | Webrtc_NoisyReduce| WebRtc降噪模块 | Venture |
+| Noise_Reduction_Benchmark | 降噪算法基准测试 | Venture
 
 ## 介绍
 FIR滤波器仿真与计算核心，使用纯C++开发，Qt界面做显示
