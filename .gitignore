@@ -14,7 +14,6 @@
 # Compiled Dynamic libraries
 *.so
 *.dylib
-*.dll
 
 # Fortran module files
 *.mod
@@ -24,7 +23,6 @@
 *.lai
 *.la
 *.a
-*.lib
 
 # Executables
 *.exe
@@ -41,3 +39,7 @@ Document/FilterDesignInfo/~$lter design.docx
 /DeepFilterDemo/Demo/build
 /DeepFilterDemo/RealTimeDemo/RealTimeDemo/build
 /Webrtc_NoisyReduce/AudioProcessing/build
+/Audio/AudioSample-48000hz/kBinSizeSpecFlat_0.05f
+*.pdb
+*.def
+*.pc
