@@ -68,7 +68,7 @@ def process_folder(input_folder, output_folder, target_rate=16000):
 
 if __name__ == "__main__":
     # 使用示例
-    input_folder = "input_wavs"  # 替换为你的输入文件夹路径
-    output_folder = "output_16k"  # 替换为你的输出文件夹路径
+    input_folder = "D:/AudioSample/48khz_crownd"  # 替换为你的输入文件夹路径
+    output_folder = "D:/AudioSample/16khz_crownd/noise_suppressor"  # 替换为你的输出文件夹路径
     
     process_folder(input_folder, output_folder)

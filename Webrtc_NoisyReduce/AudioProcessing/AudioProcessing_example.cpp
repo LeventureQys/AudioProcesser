@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 {
 
     std::string input_folder;
-    input_folder = "D:/AudioSample/white";
+    input_folder = "D:/AudioSample/48khz_crownd";
     fs::path output_dir = fs::path(input_folder) / "output";
     if (!fs::exists(output_dir)) {
         if (!fs::create_directory(output_dir)) {
