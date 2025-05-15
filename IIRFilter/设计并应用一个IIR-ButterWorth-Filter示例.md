@@ -120,7 +120,7 @@ $$ H(s) = \frac{\omega_c^2}{s^2 + \sqrt{2}\omega_c s + \omega_c^2} $$
 
 二阶归一化巴特沃斯低通滤波器（截止频率ωₐ=1 rad/s）：
 
-$$ H_{analog}(s)=\frac{1}{s^2+\sqrt{2}s+1} $$ 显然极点位置 $s=-\frac{-\sqrt{2}}{2}\pm j\frac{\sqrt{2}}{2}$
+$ H_{analog}(s)=\frac{1}{s^2+\sqrt{2}s+1} $ 显然极点位置 $s=-\frac{-\sqrt{2}}{2}\pm j\frac{\sqrt{2}}{2}$
 
 -3db的点:$\omega=1rad/s$
 
@@ -163,3 +163,94 @@ double C = 1 / std::tan(M_PI * center_freq / (double)PublicVar::ins().sample_rat
 修正后的双线性变换 $s = C·\frac{1-z^{-1}}{1+z^{-1}}$
 
 可以尝试一下
+
+### 4：代入双线性变换
+将 $s = C \cdot \frac{1 - z^{-1}}{1 + z^{-1}}$ 代入连续传递函数：
+$$
+H(z) = \frac{1}{\left(C \cdot \frac{1 - z^{-1}}{1 + z^{-1}}\right)^2 + \sqrt{2} \left(C \cdot \frac{1 - z^{-1}}{1 + z^{-1}}\right) + 1}
+$$
+
+### 5：通分整理分母
+分母部分展开：
+$$
+\begin{aligned}
+\text{分母} &= C^2 \left(\frac{1 - z^{-1}}{1 + z^{-1}}\right)^2 + \sqrt{2} C \left(\frac{1 - z^{-1}}{1 + z^{-1}}\right) + 1 \\
+&= \frac{C^2 (1 - z^{-1})^2 + \sqrt{2} C (1 - z^{-1})(1 + z^{-1}) + (1 + z^{-1})^2}{(1 + z^{-1})^2}
+\end{aligned}
+$$
+
+### 6：展开分子
+分子是 $(1 + z^{-1})^2$，分母展开为：
+$$
+\begin{aligned}
+\text{分子} &= C^2 (1 - 2z^{-1} + z^{-2}) + \sqrt{2} C (1 - z^{-2}) + (1 + 2z^{-1} + z^{-2}) \\
+&= (C^2 + \sqrt{2} C + 1) + (-2C^2 + 2)z^{-1} + (C^2 - \sqrt{2} C + 1)z^{-2}
+\end{aligned}
+$$
+
+### 7：合并传递函数
+组合分子分母：
+$$
+H(z) = \frac{(1 + z^{-1})^2}{(C^2 + \sqrt{2} C + 1) + (-2C^2 + 2)z^{-1} + (C^2 - \sqrt{2} C + 1)z^{-2}}
+$$
+
+### 8：归一化分母
+将分母首项系数归一化为1：
+$$
+H(z) = \frac{\frac{1}{C^2 + \sqrt{2} C + 1}(1 + 2z^{-1} + z^{-2})}{1 + \frac{-2C^2 + 2}{C^2 + \sqrt{2} C + 1}z^{-1} + \frac{C^2 - \sqrt{2} C + 1}{C^2 + \sqrt{2} C + 1}z^{-2}}
+$$
+
+### 9：系数对应
+定义系数：
+$$
+\begin{aligned}
+b_0 &= \frac{1}{C^2 + \sqrt{2} C + 1} \\
+b_1 &= 2b_0 \\
+b_2 &= b_0 \\
+a_1 &= \frac{2 - 2C^2}{C^2 + \sqrt{2} C + 1} \\
+a_2 &= \frac{C^2 - \sqrt{2} C + 1}{C^2 + \sqrt{2} C + 1}
+\end{aligned}
+$$
+
+最终差分方程：
+$$
+y[n] = b_0 x[n] + b_1 x[n-1] + b_2 x[n-2] - a_1 y[n-1] - a_2 y[n-2]
+$$
+
+```python
+import math
+
+class TFZ_coefficients:
+    def __init__(self):
+        self.b0 = 0.0
+        self.b1 = 0.0
+        self.b2 = 0.0
+        self.a1 = 0.0
+        self.a2 = 0.0
+
+class PublicVar:
+    _instance = None
+    
+    @classmethod
+    def ins(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    def __init__(self):
+        self.sample_rate = 44100.0  # Default value, adjust as needed
+
+def MakeCoeffLowPass(center_freq):
+    ret = TFZ_coefficients()
+    C = 1 / math.tan(math.pi * center_freq / float(PublicVar.ins().sample_rate))
+    SqC = math.pow(C, 2)
+    MultC = math.sqrt(2) * C
+    c = 1.0 / (1.0 + MultC + SqC)
+    
+    ret.b0 = c
+    ret.b1 = 2.0 * c
+    ret.b2 = c
+    ret.a1 = 2.0 * c * (1.0 - SqC)
+    ret.a2 = c * (1.0 - MultC + SqC)
+    return ret
+```
