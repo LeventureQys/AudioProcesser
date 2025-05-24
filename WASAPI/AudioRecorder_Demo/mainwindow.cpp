@@ -12,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
         string.append(QString::number(volume) + '\n');
         this->ui->plainTextEdit->appendPlainText(string);
         });
-    connect(this->recorder, &AR::AudioRecorder::Sig_Volumechanged, this, [=](double volume) {
+    connect(this->recorder, &AR::AudioRecorder::Sig_VolumePlayed, this, [=](double volume) {
         QString string;
         string.append(QString::number(volume) + '\n');
         this->ui->plainTextEdit_2->appendPlainText(string);

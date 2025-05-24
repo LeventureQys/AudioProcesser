@@ -45,7 +45,7 @@ namespace AR {
     class Recorder_Core_Windows : public QObject {
         Q_OBJECT
     public:
-
+        static const size_t BUFFER_SAMPLES = 4800; // 统一使用1024个样本作为缓冲区大小
         Recorder_Core_Windows(QObject* parent);
         ~Recorder_Core_Windows();
         bool InitRecording(const wstring& target_device_name);

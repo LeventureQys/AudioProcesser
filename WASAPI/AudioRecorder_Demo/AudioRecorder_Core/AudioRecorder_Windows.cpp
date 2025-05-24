@@ -213,7 +213,7 @@ void AR::Recorder_Core_Windows::PlayRecordedAudio()
 
     // 分块处理音频数据（每块1024个样本）
     const size_t chunkSamples = 1024;
-    const size_t chunkSize = chunkSamples * waveFormat.nBlockAlign;
+    const size_t chunkSize = BUFFER_SAMPLES * waveFormat.nBlockAlign;
     size_t remaining = recordedAudio.size();
     size_t offset = 0;
 
@@ -377,7 +377,7 @@ UINT AR::Recorder_Core_Windows::FindTargetDevice()
 {
     waveFormat.wFormatTag = WAVE_FORMAT_PCM;
     waveFormat.nChannels = 1;
-    waveFormat.nSamplesPerSec = 44100;
+    waveFormat.nSamplesPerSec = 48000;
     waveFormat.wBitsPerSample = 16;
     waveFormat.nBlockAlign = waveFormat.nChannels * waveFormat.wBitsPerSample / 8;
     waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
@@ -442,7 +442,7 @@ UINT AR::Recorder_Core_Windows::FindTargetDevice()
 
         // 准备新的缓冲区
         ZeroMemory(&waveHdr, sizeof(WAVEHDR));
-        waveHdr.dwBufferLength = 44100 * 2; // 1秒的缓冲区
+        waveHdr.dwBufferLength = BUFFER_SAMPLES * waveFormat.nBlockAlign; // 统一大小
         waveHdr.lpData = new char[waveHdr.dwBufferLength];
 
         result = waveInPrepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
