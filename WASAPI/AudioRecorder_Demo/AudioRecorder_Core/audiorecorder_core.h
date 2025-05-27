@@ -24,20 +24,20 @@ namespace AR {
         Q_OBJECT
     public:
         AudioRecorder(QObject* parent);
+        ~AudioRecorder();
+        void IInitialize(const QString& str_target_device);
+        void ISetAudioFormat(QAudioFormat format);
+        void ISetAudioDeviceInfo(QAudioDevice info);
 
+        void IStartRecord();
+        void IStopRecord();
+        void IPauseRecord();
+        void IResumeRecord();
+        void IPlayRecordedData();
+        void IStopPlayBack();
+        void ISaveRecordAsWavFile(const QString& filePath);
+        void ISetTargetDeviceName(const QString& str_target_device);
 
-        void Initialize(const QString& str_target_device);
-        bool SetAudioFormat(QAudioFormat format);
-        bool SetAudioDeviceInfo(QAudioDevice info);
-
-        bool StartRecord();
-        bool StopRecord();
-        bool PauseRecord();
-        bool ResumeRecord();
-        bool PlayRecordedData();
-        bool StopPlayBack();
-        bool SaveRecordAsWavFile(const QString& filePath);
-        void SetTargetDeviceName(const QString& str_target_device);
 
     signals:
         void Sig_Volumechanged(double volume);
@@ -58,8 +58,40 @@ namespace AR {
         /// <param name="volume"></param>
         /// <param name="volume_time"></param>
         //void RecordVolume(double volume, size_t volume_time);
+
+
+        void Initialize(const QString& str_target_device);
+        bool SetAudioFormat(QAudioFormat format);
+        bool SetAudioDeviceInfo(QAudioDevice info);
+
+        bool StartRecord();
+        bool StopRecord();
+        bool PauseRecord();
+        bool ResumeRecord();
+        bool PlayRecordedData();
+        bool StopPlayBack();
+        bool SaveRecordAsWavFile(const QString& filePath);
+        void SetTargetDeviceName(const QString& str_target_device);
+
+    signals:
+        void SThread_Initialize(const QString& str_target_device);
+        void SThread_SetAudioFormat(const QAudioFormat& format);
+        void SThread_SetAudioDeviceInfo(const QAudioDevice& info);
+        
+        void SThread_StartRecord();
+        void SThread_StopRecord();
+        void SThread_PauseRecord();
+        void SThread_ResumeRecord();
+
+        void SThread_PlayRecordedData();
+        void SThread_StopPlayBack();
+        void SThread_SaveRecordAsWavFile(const QString& file_path);
+        void SThread_SetTargetDeviceName(const QString& str_target_device);
 #ifdef _WIN32
         Recorder_Core_Windows* recorder = nullptr;
+
+
+
 #endif
     };
 }

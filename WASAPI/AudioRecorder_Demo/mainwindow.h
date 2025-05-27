@@ -6,6 +6,7 @@
 #include "QMessageBox.h"
 #include "qfiledialog.h"
 #include "QStandardPaths"
+#include "qthread.h"
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -31,6 +32,7 @@ public slots:
     void on_btn_save_file_clicked();
     void on_btn_set_device_name_clicked();
 private:
+    QThread* thread = nullptr;
     Ui::MainWindow *ui;
     AR::AudioRecorder* recorder = nullptr;
 };

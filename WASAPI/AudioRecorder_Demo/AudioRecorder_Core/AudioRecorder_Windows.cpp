@@ -1,496 +1,583 @@
 #include "AudioRecorder_Windows.h"
-void CALLBACK waveInProc(HWAVEIN hwi, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+
+bool AR::Recorder_Core_Windows::SaveAsWav(const wstring& filename)
 {
-    if (uMsg == WIM_DATA) {
-        AR::Recorder_Core_Windows* pThis = (AR::Recorder_Core_Windows*)dwInstance;
-        WAVEHDR* pHdr = (WAVEHDR*)dwParam1;
+    if (audioBuffer.empty())
+        return false;
 
-        if (pHdr->dwBytesRecorded > 0) {
-            // 关键修改：保存音频数据到容器
-            BYTE* pData = (BYTE*)pHdr->lpData;
-            pThis->recordedAudio.insert(
-                pThis->recordedAudio.end(),
-                pData,
-                pData + pHdr->dwBytesRecorded
-            );
+    // 获取音频设备格式
+    IAudioClient* pAudioClient = nullptr;
+    WAVEFORMATEX* pWaveFormat = nullptr;
+    HRESULT hr = pDevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, (void**)&pAudioClient);
+    if (FAILED(hr)) return false;
 
-            // 计算时间信息（保持原有逻辑）
-            const WAVEFORMATEX& fmt = pThis->GetWaveFormat();
-            AR::AudioTimeInfo timeInfo;
-            timeInfo.bytes_recorded = pThis->GetRecordedBytesCount();
-            timeInfo.samples_recorded = timeInfo.bytes_recorded / (fmt.wBitsPerSample / 8);
-            timeInfo.usecs_elapsed =
-                (static_cast<uint64_t>(timeInfo.samples_recorded) * 1'000'000ULL) /
-                fmt.nSamplesPerSec;
+    hr = pAudioClient->GetMixFormat(&pWaveFormat);
+    if (FAILED(hr))
+    {
+        pAudioClient->Release();
+        return false;
+    }
 
-            // 传递数据和时间信息
-            pThis->HandleWaveInMessage(uMsg, dwParam1, dwParam2, timeInfo);
+    // 打开文件进行写入
+    ofstream file(filename, ios::binary);
+    if (!file.is_open())
+    {
+        CoTaskMemFree(pWaveFormat);
+        pAudioClient->Release();
+        return false;
+    }
+    pWaveFormat->wFormatTag = WAVE_FORMAT_PCM;
+    pWaveFormat->nChannels = 2;
+    pWaveFormat->nSamplesPerSec = 48000;
+    pWaveFormat->wBitsPerSample = 16;
+    pWaveFormat->nBlockAlign = pWaveFormat->nChannels * pWaveFormat->wBitsPerSample / 8;
+    pWaveFormat->nAvgBytesPerSec = pWaveFormat->nSamplesPerSec * pWaveFormat->nBlockAlign;
+    pWaveFormat->cbSize = 0;
+    // 准备WAV文件头
+    WAVHeader header;
+    //header.numChannels = pWaveFormat->nChannels;
+    header.numChannels = pWaveFormat->nChannels;
+    header.sampleRate = pWaveFormat->nSamplesPerSec;
+    header.bitsPerSample = pWaveFormat->wBitsPerSample;
+    header.byteRate = pWaveFormat->nAvgBytesPerSec;
+    header.blockAlign = pWaveFormat->nBlockAlign;
+
+    // 计算大小
+    header.subchunk2Size = static_cast<uint32_t>(audioBuffer.size());
+    header.chunkSize = 36 + header.subchunk2Size; // 36 = 总头部大小 - 8 (RIFF和大小字段)
+
+    // 写入WAV头
+    file.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
+
+    // 写入音频数据
+    file.write(reinterpret_cast<const char*>(audioBuffer.data()), audioBuffer.size());
+
+    // 清理资源
+    file.close();
+    CoTaskMemFree(pWaveFormat);
+    pAudioClient->Release();
+
+    return true;
+}
+
+void AR::Recorder_Core_Windows::SetTargetDevice(const wstring& device_name)
+{
+	if (!device_name.empty()) {
+		this->str_target_device = device_name;
+	}
+}
+
+void AR::Recorder_Core_Windows::PlayRecordedAudio()
+{
+    if (!isPlaying)
+    {
+        isPlaying = true;
+        shouldStop = false;
+        if (playThread.joinable()) {
+            playThread.join();
+        }
+        playThread = std::thread([=]() {this->PlayDataThreadFunction();});
+    }
+    else
+    {
+        std::cout << "Already playing." << std::endl;
+    }
+}
+
+void AR::Recorder_Core_Windows::StopRecordedAudio()
+{//关闭播放线程
+    if (isPlaying) {
+        isPlaying = false;
+        if (playThread.joinable()) {
+            playThread.join();
         }
     }
 }
 
-// 实现播放回调函数
-void CALLBACK waveOutProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+IMMDevice* AR::Recorder_Core_Windows::GetTargetDevice()
 {
-    AR::Recorder_Core_Windows* pThis = reinterpret_cast<AR::Recorder_Core_Windows*>(dwInstance);
-    if (pThis) {
-        pThis->HandleWaveOutMessage(uMsg, dwParam1, dwParam2);
-    }
-}
-AR::Recorder_Core_Windows::Recorder_Core_Windows(QObject* parent):QObject(parent)
-{
+    IMMDeviceEnumerator* pEnumerator = NULL;
+    IMMDeviceCollection* pCollection = NULL;
+    IMMDevice* pDevice = NULL;
+    IPropertyStore* pProps = NULL;
+    LPWSTR pwszID = NULL;
+    HRESULT hr;
 
+    CoInitialize(NULL);
+
+    // 创建设备枚举器
+    hr = CoCreateInstance(
+        __uuidof(MMDeviceEnumerator),
+        NULL,
+        CLSCTX_ALL,
+        __uuidof(IMMDeviceEnumerator),
+        (void**)&pEnumerator);
+    if (FAILED(hr)) goto Exit;
+
+    // 获取所有音频输入设备
+    hr = pEnumerator->EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE, &pCollection);
+    if (FAILED(hr)) goto Exit;
+
+    UINT count;
+    hr = pCollection->GetCount(&count);
+    if (FAILED(hr)) goto Exit;
+
+    // 遍历设备查找包含str_target_device的设备
+    for (UINT i = 0; i < count; i++)
+    {
+        hr = pCollection->Item(i, &pDevice);
+        if (FAILED(hr)) continue;
+
+        hr = pDevice->OpenPropertyStore(STGM_READ, &pProps);
+        if (FAILED(hr)) { pDevice->Release(); continue; }
+
+        PROPVARIANT varName;
+        PropVariantInit(&varName);
+
+        hr = pProps->GetValue(PKEY_Device_FriendlyName, &varName);
+        if (SUCCEEDED(hr))
+        {
+            std::wstring deviceName(varName.pwszVal);
+            if (deviceName.find(this->str_target_device) != std::wstring::npos)
+            {
+                PropVariantClear(&varName);
+                pProps->Release();
+                pCollection->Release();
+                pEnumerator->Release();
+                return pDevice;
+            }
+        }
+        PropVariantClear(&varName);
+        pProps->Release();
+        pDevice->Release();
+    }
+
+Exit:
+    if (pCollection) pCollection->Release();
+    if (pEnumerator) pEnumerator->Release();
+    return NULL;
+}
+const float kMinDB = -60.0f;
+const float kMaxDB = 0.0f;
+// 将分贝值线性映射到0-100范围
+short MapDBToRange(float db)
+{
+    float normalized = (db - kMinDB) / (kMaxDB - kMinDB);
+    return static_cast<short>(normalized * 100.0f);
+}
+// 将RMS值转换为分贝值
+float RMSToDB(float rms)
+{
+    if (rms <= 0.0f) return kMinDB;
+    float db = 20.0f * log10f(rms);
+    return std::clamp(db, kMinDB, kMaxDB);
+}
+float CalculateRMS(const BYTE* pData, UINT32 numFrames, UINT32 bytesPerFrame)
+{
+    if (numFrames == 0) return 0.0f;
+
+    float sum = 0.0f;
+    const float* samples = reinterpret_cast<const float*>(pData);
+    UINT32 numSamples = numFrames * bytesPerFrame / sizeof(float);
+
+    for (UINT32 i = 0; i < numSamples; ++i)
+    {
+        float sample = samples[i];
+        sum += sample * sample;
+    }
+
+    return sqrtf(sum / numSamples);
+}
+
+void AR::Recorder_Core_Windows::StartRecordThreadFunction()
+{
+    long sampe_count = 0;
+    IAudioClient* pAudioClient = NULL;
+    IAudioCaptureClient* pCaptureClient = NULL;
+    WAVEFORMATEX* pWaveFormat = NULL;
+    UINT32 numFramesAvailable;
+    UINT32 packetLength = 0;
+    BYTE* pData;
+    DWORD flags;
+    HRESULT hr;
+    UINT32 bufferFrameCount = 0;
+    IPropertyStore* pProps = nullptr;
+    PROPVARIANT varName;
+    const REFERENCE_TIME hnsRequestedDuration = duration_time; // 100 * 10000 (100ms)
+    const REFERENCE_TIME bufferDuration = 100 * 10000; // 100ms
+    // 使用PCM格式
+    HANDLE hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    //给当前的pDevice找一下当前设备
+    this->pDevice = this->GetTargetDevice();
+
+    hr = pDevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&pAudioClient);
+    if (FAILED(hr)) goto Exit;
+
+    // 替换你的初始化代码：
+    hr = pAudioClient->GetMixFormat(&pWaveFormat);  // 先获取设备支持的格式
+    if (FAILED(hr)) {
+        std::cerr << "GetMixFormat failed: 0x" << std::hex << hr << std::endl;
+        goto Exit;
+    }
+
+    pWaveFormat->wFormatTag = WAVE_FORMAT_PCM;
+    pWaveFormat->nChannels = 2;
+    pWaveFormat->nSamplesPerSec = 48000;
+    pWaveFormat->wBitsPerSample = 16;
+    pWaveFormat->nBlockAlign = pWaveFormat->nChannels * pWaveFormat->wBitsPerSample / 8;
+    pWaveFormat->nAvgBytesPerSec = pWaveFormat->nSamplesPerSec * pWaveFormat->nBlockAlign;
+    pWaveFormat->cbSize = 0;
+
+    WAVEFORMATEX* pWaveFormat2;
+    hr = pAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, pWaveFormat, &pWaveFormat2);
+
+    hr = pAudioClient->Initialize(
+        AUDCLNT_SHAREMODE_SHARED,
+        AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+        hnsRequestedDuration, 0, pWaveFormat, NULL);
+    if (FAILED(hr))
+    {
+        std::cerr << "Initialize failed: 0x" << std::hex << hr << std::dec << std::endl;
+        if (hr == AUDCLNT_E_UNSUPPORTED_FORMAT)
+            std::cerr << "Unsupported format" << std::endl;
+        else if (hr == AUDCLNT_E_DEVICE_IN_USE)
+            std::cerr << "Device already in use" << std::endl;
+        else if (hr == E_INVALIDARG)
+            std::cerr << "Invalid arguments" << std::endl;
+        goto Exit;
+    }
+
+    hr = pAudioClient->SetEventHandle(hEvent);
+
+    hr = pAudioClient->GetBufferSize(&bufferFrameCount);
+    if (FAILED(hr)) goto Exit;
+
+    hr = pAudioClient->GetService(
+        __uuidof(IAudioCaptureClient),
+        (void**)&pCaptureClient);
+    if (FAILED(hr)) goto Exit;
+
+    hr = pAudioClient->Start();
+    if (FAILED(hr)) goto Exit;
+
+    std::cout << "Recording started..." << std::endl;
+
+    while (isRecording) {
+        WaitForSingleObject(hEvent, INFINITE);
+
+        hr = pCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
+        if (FAILED(hr)) break;
+
+        if (pData != NULL) {
+            // 电平计算
+            const float kMinDB = -60.0f;
+            const float kMaxDB = 0.0f;
+            float rmsLevel = 0.0f;
+
+            int16_t* samples = reinterpret_cast<int16_t*>(pData);
+            size_t sampleCount = numFramesAvailable * pWaveFormat->nChannels;
+
+            for (size_t i = 0; i < sampleCount; i++) {
+                float sample = samples[i] / 32768.0f;
+                rmsLevel += sample * sample;
+            }
+
+            rmsLevel = sqrt(rmsLevel / sampleCount);
+            float rmsDb = 20.0f * log10(rmsLevel + 0.000001f);
+            rmsDb = std::max(kMinDB, std::min(kMaxDB, rmsDb));
+            short rmsMapped = static_cast<short>(((rmsDb - kMinDB) / (kMaxDB - kMinDB)) * 100.0f);
+
+            // 存储电平数据到map
+            {
+                std::lock_guard<std::mutex> lock(mapMutex);
+                levelMap[currentPos] = rmsMapped;
+            }
+            if (sampe_count++ > 2) {
+                sampe_count = 0;
+                emit this->Sig_UpdateLevel(rmsMapped);
+            }
+            
+
+            // 更新音频缓冲区和位置
+            std::lock_guard<std::mutex> lock(bufferMutex);
+            size_t dataSize = numFramesAvailable * pWaveFormat->nBlockAlign;
+            audioBuffer.insert(audioBuffer.end(), pData, pData + dataSize);
+            currentPos += dataSize;  // 更新当前位置
+            bufferCV.notify_one();
+        }
+
+        hr = pCaptureClient->ReleaseBuffer(numFramesAvailable);
+        if (FAILED(hr)) break;
+    }
+
+    pAudioClient->Stop();
+    if (FAILED(hr)) goto Exit;
+
+    std::cout << "Recording stopped." << std::endl;
+    this->StopRecording();
+Exit:
+    if (pWaveFormat) CoTaskMemFree(pWaveFormat);
+    if (pCaptureClient) pCaptureClient->Release();
+    if (pAudioClient) pAudioClient->Release();
+    this->StopRecording();
+}
+
+void AR::Recorder_Core_Windows::PlayDataThreadFunction()
+{
+    IMMDeviceEnumerator* pEnumerator = NULL;
+    IMMDevice* pDevice = NULL;
+    IAudioClient* pAudioClient = NULL;
+    IAudioRenderClient* pRenderClient = NULL;
+    WAVEFORMATEX* pWaveFormat = NULL;
+    UINT32 bufferFrameCount;
+    UINT32 numFramesPadding;
+    long sampe_count = 0;
+    BYTE* pData;
+    HRESULT hr;
+    size_t pos = 0;
+    CoInitialize(NULL);
+
+    // 获取默认音频输出设备
+    hr = CoCreateInstance(
+        __uuidof(MMDeviceEnumerator),
+        NULL,
+        CLSCTX_ALL,
+        __uuidof(IMMDeviceEnumerator),
+        (void**)&pEnumerator);
+    if (FAILED(hr)) goto Exit;
+
+    hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice);
+    if (FAILED(hr)) goto Exit;
+
+    hr = pDevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&pAudioClient);
+    if (FAILED(hr)) goto Exit;
+
+    // 使用PCM格式
+    pWaveFormat = (WAVEFORMATEX*)CoTaskMemAlloc(sizeof(WAVEFORMATEX));
+    if (!pWaveFormat) goto Exit;
+
+    pWaveFormat->wFormatTag = WAVE_FORMAT_PCM;
+    pWaveFormat->nChannels = 2;
+    pWaveFormat->nSamplesPerSec = 48000;
+    pWaveFormat->wBitsPerSample = 16;
+    pWaveFormat->nBlockAlign = pWaveFormat->nChannels * pWaveFormat->wBitsPerSample / 8;
+    pWaveFormat->nAvgBytesPerSec = pWaveFormat->nSamplesPerSec * pWaveFormat->nBlockAlign;
+    pWaveFormat->cbSize = 0;
+
+    hr = pAudioClient->Initialize(
+        AUDCLNT_SHAREMODE_SHARED,
+        0,
+        duration_time,
+        0,
+        pWaveFormat,
+        NULL);
+    if (FAILED(hr))
+    {
+        std::cerr << "Initialize failed: 0x" << std::hex << hr << std::dec << std::endl;
+        if (hr == AUDCLNT_E_UNSUPPORTED_FORMAT)
+            std::cerr << "Unsupported format" << std::endl;
+        else if (hr == AUDCLNT_E_DEVICE_IN_USE)
+            std::cerr << "Device already in use" << std::endl;
+        else if (hr == E_INVALIDARG)
+            std::cerr << "Invalid arguments" << std::endl;
+        goto Exit;
+    }
+
+    hr = pAudioClient->GetBufferSize(&bufferFrameCount);
+    if (FAILED(hr)) goto Exit;
+
+    hr = pAudioClient->GetService(
+        __uuidof(IAudioRenderClient),
+        (void**)&pRenderClient);
+    if (FAILED(hr)) goto Exit;
+
+    hr = pAudioClient->Start();
+    if (FAILED(hr)) goto Exit;
+
+    std::cout << "Playing started..." << std::endl;
+
+
+    while (isPlaying && !shouldStop)
+    {
+        hr = pAudioClient->GetCurrentPadding(&numFramesPadding);
+        if (FAILED(hr))
+            break;
+
+        UINT32 numFramesAvailable = bufferFrameCount - numFramesPadding;
+
+        // 当没有数据可写时，检查是否所有数据都已提交
+        if (numFramesAvailable == 0)
+        {
+            // 检查是否已经提交了所有音频数据
+            std::unique_lock<std::mutex> lock(bufferMutex);
+            bool allDataSubmitted = (pos >= audioBuffer.size());
+            lock.unlock();
+
+            if (allDataSubmitted)
+            {
+                // 等待缓冲区播放完毕 (numFramesPadding == 0)
+                if (numFramesPadding == 0)
+                {
+                    break; // 所有数据已播放完毕
+                }
+            }
+
+            Sleep(10);
+            continue;
+        }
+
+        hr = pRenderClient->GetBuffer(numFramesAvailable, &pData);
+        if (FAILED(hr))
+            break;
+
+        std::unique_lock<std::mutex> lock(bufferMutex);
+        size_t bytesAvailable = audioBuffer.size() - pos;
+        size_t bytesToCopy = numFramesAvailable * pWaveFormat->nBlockAlign;
+        bool isLastBlock = false;
+
+        if (bytesAvailable < bytesToCopy)
+        {
+            bytesToCopy = bytesAvailable;
+            isLastBlock = true; // 标记这是最后一块数据
+        }
+
+        if (bytesToCopy > 0) {
+            memcpy(pData, &audioBuffer[pos], bytesToCopy);
+
+            // 从map中获取电平数据
+            short rmsMapped = 0;
+            {
+                std::lock_guard<std::mutex> lock(mapMutex);
+                auto it = levelMap.lower_bound(pos);
+                if (it != levelMap.end()) {
+                    rmsMapped = it->second;
+                }
+            }
+            if (sampe_count++ > 2) {
+                sampe_count = 0;
+                emit this->Sig_UpdatePlayLevel(rmsMapped);
+            }
+           // emit this->Sig_UpdatePlayLevel(rmsMapped);
+            pos += bytesToCopy;
+        }
+        else
+        {
+            memset(pData, 0, bytesToCopy);
+        }
+
+        lock.unlock();
+
+        hr = pRenderClient->ReleaseBuffer(numFramesAvailable, isLastBlock ? AUDCLNT_BUFFERFLAGS_SILENT : 0);
+        if (FAILED(hr)) break;
+    }
+    // 确保所有数据都已播放完毕
+    if (isPlaying)
+    {
+        // 等待缓冲区完全播放完毕
+        UINT32 paddingFrames = 0;
+        do {
+            hr = pAudioClient->GetCurrentPadding(&paddingFrames);
+            if (FAILED(hr)) break;
+            if (paddingFrames > 0) Sleep(10);
+        } while (paddingFrames > 0);
+    }
+    hr = pAudioClient->Stop();
+    if (FAILED(hr)) goto Exit;
+
+    isPlaying = false;
+
+    std::cout << "Playing stopped." << std::endl;
+
+    
+    emit this->Sig_PlaybackFinished();
+    this->StopRecordedAudio();
+Exit:
+    if (pWaveFormat) CoTaskMemFree(pWaveFormat);
+    if (pRenderClient) pRenderClient->Release();
+    if (pAudioClient) pAudioClient->Release();
+    if (pDevice) pDevice->Release();
+    if (pEnumerator) pEnumerator->Release();
+    CoUninitialize();
+    emit this->Sig_PlaybackFinished();
+    this->StopRecordedAudio();
+}
+
+#include <windows.h>
+#include <mmdeviceapi.h>
+#include <audioclient.h>
+#include <functiondiscoverykeys.h>
+#include <chrono>
+#include <thread>
+#include <iostream>
+#include <mutex>
+#include <vector>
+#include <cmath>
+
+
+AR::Recorder_Core_Windows::Recorder_Core_Windows(QObject* parent)
+{
 }
 
 AR::Recorder_Core_Windows::~Recorder_Core_Windows()
 {
-}
-// 获取桌面路径（宽字符版本）
-std::wstring GetDesktopPath()
-{
-    wchar_t desktopPath[MAX_PATH] = { 0 };
-
-    // 使用 Unicode 版本的 API (SHGetSpecialFolderPathW)
-    if (SHGetSpecialFolderPathW(NULL, desktopPath, CSIDL_DESKTOP, FALSE))
-    {
-        // 确保路径以反斜杠结尾
-        size_t len = wcslen(desktopPath);
-        if (len > 0 && desktopPath[len - 1] != L'\\')
-        {
-            wcscat_s(desktopPath, L"\\");
-        }
-        return desktopPath;
+    if (this->playThread.joinable()) {
+        this->playThread.join();
     }
 
-    return L""; // 如果获取失败，返回空路径
+    if (this->recordThread.joinable()) {
+        this->recordThread.join();
+    }
 }
+
 bool AR::Recorder_Core_Windows::InitRecording(const wstring& target_device_name)
 {
-    this->SetTargetDevice(target_device_name);
-    selectedDeviceId = FindTargetDevice();
-
-   
-
-    
+    this->str_target_device = target_device_name;
+    this->pDevice = GetTargetDevice();
     return true;
 }
 
 void AR::Recorder_Core_Windows::StartRecording()
 {
-    if (isRecording) {
-        cout << "已经在录音中" << endl;
-        return;
+    if (!isRecording) {
+        isRecording = true;
+        {
+            std::lock_guard<std::mutex> lock(bufferMutex);
+            this->audioBuffer.clear();
+        }
+        //线程中运行此函数
+        if (recordThread.joinable()) {
+            recordThread.join();
+        }
+        recordThread = std::thread([=]() {this->StartRecordThreadFunction();});
     }
-
-    //开始之前必须重新尝试找到当前设备
-    this->FindTargetDevice();
-
-    recordedAudio.clear();
-    MMRESULT result = waveInStart(hWaveIn);
-    if (result != MMSYSERR_NOERROR) {
-        cerr << "无法开始录音，错误代码: " << result << endl;
-        return;
+    else {
+        std::cout << " Recording is already running!!";
     }
-
-    isRecording = true;
-    //cout << "开始录音... 按任意键停止" << endl;
-    //system("pause"); // 等待用户按键
-    //StopRecording();
 }
 
 void AR::Recorder_Core_Windows::StopRecording()
 {
-    if (!isRecording) return;
-
-    if (isPaused) {
-        // 如果处于暂停状态，需要先恢复再停止
-        waveInStart(hWaveIn);
-    }
-
-    waveInStop(hWaveIn);
-    isRecording = false;
-    isPaused = false;
-    cout << "录音已停止，共录制 " << recordedAudio.size() << " 字节" << endl;
-}
-
-bool AR::Recorder_Core_Windows::SaveAsWav(const wstring& filename)
-{
-    if (recordedAudio.empty()) {
-        cerr << "错误：没有录音数据可保存" << endl;
-        return false;
-    }
-
-    // 修改后的代码段
-    std::wstring fullPath;
-    if (filename.find(L':') != std::wstring::npos ||   // 检查Windows驱动器（C:）
-        filename.find(L'/') != std::wstring::npos ||   // 检查Unix风格路径
-        filename.find(L'\\') != std::wstring::npos)    // 检查Windows风格路径
-    {
-        fullPath = filename; // 已经是完整路径
-    }
-    else {
-        std::wstring desktopPath = GetDesktopPath();
-        // 确保桌面路径以反斜杠结尾
-        if (!desktopPath.empty() && desktopPath.back() != L'\\') {
-            desktopPath += L'\\';
+    if (isRecording) {
+        isRecording = false;
+        if (recordThread.joinable())
+        {
+            recordThread.join();
         }
-        fullPath = desktopPath + filename; // 保存到桌面
     }
-
-    // 使用_wfopen以支持宽字符路径（兼容中文）
-    FILE* outFile = _wfopen(fullPath.c_str(), L"wb");
-    if (!outFile) {
-        std::wcerr << L"无法创建文件: " << fullPath << std::endl;
-        return false;
-    }
-
-    // 准备WAV文件头
-    WAVHeader header;
-    header.numChannels = waveFormat.nChannels;
-    header.sampleRate = waveFormat.nSamplesPerSec;
-    header.bitsPerSample = waveFormat.wBitsPerSample;
-    header.byteRate = waveFormat.nAvgBytesPerSec;
-    header.blockAlign = waveFormat.nBlockAlign;
-    header.subchunk2Size = static_cast<uint32_t>(recordedAudio.size());
-    header.chunkSize = 36 + header.subchunk2Size;
-
-    // 使用C风格文件操作写入数据
-    fwrite(&header, sizeof(header), 1, outFile);
-    fwrite(recordedAudio.data(), 1, recordedAudio.size(), outFile);
-
-    fclose(outFile);
-
-    // 输出保存信息（需要将wstring转换为当前控制台编码）
-    std::wcout << L"已保存到: " << fullPath << std::endl;
-
-    // 在资源管理器中显示文件
-
-    return true;
-}
-
-void AR::Recorder_Core_Windows::Cleanup()
-{
-    if (hWaveIn) {
-        waveInReset(hWaveIn);
-        if (waveHdr.lpData) {
-            waveInUnprepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
-            delete[] waveHdr.lpData;
-            waveHdr.lpData = NULL;
-        }
-        waveInClose(hWaveIn);
-        hWaveIn = NULL;
-    }
-
-    // 添加输出设备清理
-    if (hWaveOut) {
-        waveOutReset(hWaveOut);
-        waveOutClose(hWaveOut);
-        hWaveOut = NULL;
-    }
-}
-
-void AR::Recorder_Core_Windows::SetTargetDevice(const wstring& device_name)
-{
-    this->str_target_device_name = device_name;
-}
-
-void AR::Recorder_Core_Windows::PlayRecordedAudio()
-{
-    if (recordedAudio.empty()) {
-        cerr << "错误：没有录音数据可播放" << endl;
-        return;
-    }
-    // 添加播放进度跟踪
-    static uint64_t playbackPosition = 0; // 使用静态变量跟踪播放进度
-    this->StopRecordedAudio();
-
-    MMRESULT result = waveOutOpen(&hWaveOut, WAVE_MAPPER, &waveFormat,
-        (DWORD_PTR)waveOutProc, (DWORD_PTR)this, CALLBACK_FUNCTION);
-    if (result != MMSYSERR_NOERROR) {
-        cerr << "无法打开音频输出设备，错误代码: " << result << endl;
-        return;
-    }
-
-    // 分块处理音频数据（每块1024个样本）
-    const size_t chunkSamples = 1024;
-    const size_t chunkSize = BUFFER_SAMPLES * waveFormat.nBlockAlign;
-    size_t remaining = recordedAudio.size();
-    size_t offset = 0;
-
-    while (remaining > 0) {
-        size_t thisChunk = min(chunkSize, remaining);
-
-        WAVEHDR* pHdr = new WAVEHDR;
-        ZeroMemory(pHdr, sizeof(WAVEHDR));
-        pHdr->dwBufferLength = thisChunk;
-        pHdr->lpData = new char[thisChunk];
-        memcpy(pHdr->lpData, recordedAudio.data() + offset, thisChunk);
-
-        waveOutPrepareHeader(hWaveOut, pHdr, sizeof(WAVEHDR));
-        waveOutWrite(hWaveOut, pHdr, sizeof(WAVEHDR));
-
-        offset += thisChunk;
-        remaining -= thisChunk;
-        // 记录块的时间信息
-        const size_t chunkDuration = (chunkSamples * 1'000'000ULL) / waveFormat.nSamplesPerSec;
-        playbackPosition += chunkDuration;
-    }
-
-
-    cout << "正在播放录音..." << endl;
-}
-
-void AR::Recorder_Core_Windows::StopRecordedAudio()
-{
-    if (!hWaveOut) return;
-
-    // 重置设备会自动取消所有未完成的缓冲区
-    waveOutReset(hWaveOut);
-    waveOutClose(hWaveOut);
-    hWaveOut = NULL;
-    cout << "播放已停止" << endl;
 }
 
 void AR::Recorder_Core_Windows::PauseRecording()
 {
-    if (!isRecording || isPaused) return;
-
-    MMRESULT result = waveInStop(hWaveIn);
-    if (result != MMSYSERR_NOERROR) {
-        cerr << "暂停录音失败，错误代码: " << result << endl;
-        return;
-    }
-
-    isPaused = true;
-    cout << "录音已暂停" << endl;
+    std::cout << "暂时没有支持这个接口!" << std::endl;
 }
 
 void AR::Recorder_Core_Windows::ResumeRecording()
 {
-    if (!isRecording || !isPaused) return;
-
-    MMRESULT result = waveInStart(hWaveIn);
-    if (result != MMSYSERR_NOERROR) {
-        cerr << "恢复录音失败，错误代码: " << result << endl;
-        return;
-    }
-
-    isPaused = false;
-    cout << "录音已恢复" << endl;
+    std::cout << "暂时没有支持这个接口!" << std::endl;
 }
 
 void AR::Recorder_Core_Windows::SetAudioFormat(WAVEFORMATEX format)
 {
-
-}
-
-void AR::Recorder_Core_Windows::HandleWaveInMessage(UINT uMsg, DWORD_PTR dwParam1, DWORD_PTR dwParam2, AudioTimeInfo currentTimeSec)
-{
-    if (uMsg == WIM_DATA) // 当有新音频数据到达时
-    {
-        WAVEHDR* pWaveHdr = reinterpret_cast<WAVEHDR*>(dwParam1);
-        if (pWaveHdr && pWaveHdr->lpData && pWaveHdr->dwBytesRecorded > 0)
-        {
-            // 假设音频是 16-bit 单声道 PCM
-            const short* pSamples = reinterpret_cast<const short*>(pWaveHdr->lpData);
-            int numSamples = pWaveHdr->dwBytesRecorded / sizeof(short);
-
-            // 1. 计算 RMS（均方根）
-            float rms = 0.0f;
-            for (int i = 0; i < numSamples; i++)
-            {
-                float sample = pSamples[i] / 32768.0f; // 归一化到 [-1.0, 1.0]
-                rms += sample * sample;
-            }
-            rms = sqrt(rms / numSamples);
-
-            // 2. 防止对数计算出现负无穷（避免 log10(0)）
-            const float kMinLevel = 0.0001f; // -80dB（接近静音）
-            rms = std::max(rms, kMinLevel);
-
-            // 3. 将 RMS 值转换为分贝（dB）
-            float rmsDB = 20.0f * log10(rms);
-
-            // 4. 定义最小和最大分贝值（用于归一化）
-            const float kMinDB = -60.0f; // 最小显示分贝（例如 -60dB）
-            const float kMaxDB = 0.0f;   // 最大分贝（0dB 是最大值）
-
-            // 5. 将分贝值归一化到 0 - 1 范围
-            float normalized = (rmsDB - kMinDB) / (kMaxDB - kMinDB);
-            normalized = std::clamp(normalized, 0.0f, 1.0f); // 限制在 [0, 1]
-
-            // 6. 转换为 0 - 100 范围（用于 UI 显示）
-            int level = static_cast<int>(normalized * 100.0f);
-
-            // 更新电平条（示例：存储或触发 UI 更新）
-            double m_currentLevel = level;
-            // 新增：存储时间戳和电平值（按微秒存储）
-            map_time_volume.insert(
-                currentTimeSec.usecs_elapsed,
-                QPair<size_t, double>(currentTimeSec.usecs_elapsed, level)
-            );
-            emit this->Sig_UpdateLevel(level); // 假设有一个更新 UI 的方法
-        }
-
-        // 重新提交缓冲区（继续录音）
-        waveInAddBuffer(hWaveIn, pWaveHdr, sizeof(WAVEHDR));
-    }
-}
-
-void AR::Recorder_Core_Windows::HandleWaveOutMessage(UINT uMsg, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
-{
-    if (uMsg == WOM_DONE) {
-        WAVEHDR* pHdr = reinterpret_cast<WAVEHDR*>(dwParam1);
-        if (pHdr && pHdr->lpData && pHdr->dwBufferLength > 0) {
-            // 计算当前播放位置对应的微秒时间
-            static uint64_t accumulatedUsecs = 0;
-            const size_t samplesPerChunk = pHdr->dwBufferLength / (waveFormat.wBitsPerSample / 8);
-            accumulatedUsecs += (samplesPerChunk * 1'000'000ULL) / waveFormat.nSamplesPerSec;
-
-            // 查找最近的时间戳电平数据
-            auto it = map_time_volume.lowerBound(accumulatedUsecs);
-            if (it != map_time_volume.end()) {
-                emit Sig_UpdatePlayLevel(it.value().second); // 使用录制时存储的电平值
-            }
-
-            // 清理资源
-            waveOutUnprepareHeader(hWaveOut, pHdr, sizeof(WAVEHDR));
-            delete[] pHdr->lpData;
-            delete pHdr;
-        }
-    }
-}
-
-const WAVEFORMATEX& AR::Recorder_Core_Windows::GetWaveFormat() const
-{
-    return waveFormat;
-}
-
-size_t AR::Recorder_Core_Windows::GetRecordedBytesCount() const
-{
-    return recordedAudio.size();
-}
-
-
-
-UINT AR::Recorder_Core_Windows::FindTargetDevice()
-{
-    waveFormat.wFormatTag = WAVE_FORMAT_PCM;
-    waveFormat.nChannels = 1;
-    waveFormat.nSamplesPerSec = 48000;
-    waveFormat.wBitsPerSample = 16;
-    waveFormat.nBlockAlign = waveFormat.nChannels * waveFormat.wBitsPerSample / 8;
-    waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
-    waveFormat.cbSize = 0;
-
-    UINT deviceCount = waveInGetNumDevs();
-    UINT int_target_device = WAVE_MAPPER; // 默认使用映射器
-    if (deviceCount == 0) {
-        cout << "未找到音频输入设备" << endl;
-        return WAVE_MAPPER;
-    }
-
-    cout << "\n可用音频输入设备:" << endl;
-
-    bool blnFindAvaliableDevice = false;
-    for (UINT i = 0; i < deviceCount; i++) {
-        WAVEINCAPS caps;
-        if (waveInGetDevCaps(i, &caps, sizeof(caps)) == MMSYSERR_NOERROR) {
-            wcout << i << ": " << caps.szPname << endl;
-
-            wstring deviceName(caps.szPname);
-            transform(deviceName.begin(), deviceName.end(), deviceName.begin(), ::towlower);
-            // 将目标设备名称也转换为小写
-            wstring targetLower = this->str_target_device_name;
-            transform(targetLower.begin(), targetLower.end(), targetLower.begin(), ::towlower);
-
-            if (deviceName.find(targetLower) != wstring::npos) {
-                cout << "\n找到目标设备: ID " << i << endl;
-                int_target_device = i;
-                blnFindAvaliableDevice = true;
-                break;
-            }
-        }
-    }
-
-    // 如果找到合适的设备，关闭现有句柄并重新创建
-    if (blnFindAvaliableDevice) {
-        // 关闭现有音频输入设备
-        if (hWaveIn != NULL) {
-            waveInReset(hWaveIn);  // 停止任何正在进行的录音
-            waveInClose(hWaveIn);  // 关闭句柄
-            hWaveIn = NULL;
-
-            // 清理之前的缓冲区
-            if (waveHdr.lpData != NULL) {
-                delete[] waveHdr.lpData;
-                waveHdr.lpData = NULL;
-            }
-        }
-
-
-        // 使用找到的设备ID打开新设备
-        MMRESULT result = waveInOpen(&hWaveIn, int_target_device, &waveFormat,
-            (DWORD_PTR)waveInProc, (DWORD_PTR)this, CALLBACK_FUNCTION);
-        if (result != MMSYSERR_NOERROR) {
-            cerr << "无法打开音频输入设备，错误代码: " << result << endl;
-            return WAVE_MAPPER;
-        }
-        else {
-            cout << "设备注册成功 " << endl;
-        }
-
-        // 准备新的缓冲区
-        ZeroMemory(&waveHdr, sizeof(WAVEHDR));
-        waveHdr.dwBufferLength = BUFFER_SAMPLES * waveFormat.nBlockAlign; // 统一大小
-        waveHdr.lpData = new char[waveHdr.dwBufferLength];
-
-        result = waveInPrepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
-        if (result != MMSYSERR_NOERROR) {
-            cerr << "无法准备音频头，错误代码: " << result << endl;
-            return WAVE_MAPPER;
-        }
-
-        result = waveInAddBuffer(hWaveIn, &waveHdr, sizeof(WAVEHDR));
-        if (result != MMSYSERR_NOERROR) {
-            cerr << "无法添加音频缓冲区，错误代码: " << result << endl;
-            return WAVE_MAPPER;
-        }
-
-        return int_target_device;
-    }
-
-    // 如果没有找到目标设备，尝试使用默认设备
-    MMRESULT result = waveInOpen(&hWaveIn, WAVE_MAPPER, &waveFormat,
-        (DWORD_PTR)waveInProc, (DWORD_PTR)this, CALLBACK_FUNCTION);
-    if (result != MMSYSERR_NOERROR) {
-        cerr << "无法打开音频输入设备，错误代码: " << result << endl;
-        return WAVE_MAPPER;
-    }
-
-    ZeroMemory(&waveHdr, sizeof(WAVEHDR));
-    waveHdr.dwBufferLength = 44100 * 2; // 1秒的缓冲区
-    waveHdr.lpData = new char[waveHdr.dwBufferLength];
-
-    result = waveInPrepareHeader(hWaveIn, &waveHdr, sizeof(WAVEHDR));
-    if (result != MMSYSERR_NOERROR) {
-        cerr << "无法准备音频头，错误代码: " << result << endl;
-        return WAVE_MAPPER;
-    }
-
-    result = waveInAddBuffer(hWaveIn, &waveHdr, sizeof(WAVEHDR));
-    if (result != MMSYSERR_NOERROR) {
-        cerr << "无法添加音频缓冲区，错误代码: " << result << endl;
-        return WAVE_MAPPER;
-    }
-
-    return WAVE_MAPPER;
-}
-
-void AR::Recorder_Core_Windows::RecordVolume(double volume)
-{
-    ////记录一个当前umsec的时间和volume
-    //size_t process_time = volume_time;
-
-    //this->map_time_volume.insert(this->map_time_volume.size(), QPair<size_t, double>(process_time, volume));
+    //暂时似乎不需要这个接口，麦克风支持什么就录什么
+    std::cout << "暂时不支持这个接口，麦克风支持什么格式就录什么格式";
 }

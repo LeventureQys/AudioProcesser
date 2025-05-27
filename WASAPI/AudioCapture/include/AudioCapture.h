@@ -250,7 +250,7 @@ HRESULT RecordAudioStream(MyAudioSink* pMySink)
 int main()
 {
 	int i = 1;
-	CONST CHAR file[] = "Q:\\workplace\\demo\\wasapi_capture\\wasapi_capture\\2.wav";
+	CONST CHAR file[] = "D://Temp//1.wav";
 	MyAudioSink* psink = new MyAudioSink(file);
 	RecordAudioStream(psink);
 	delete psink;

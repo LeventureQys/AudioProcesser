@@ -16,8 +16,19 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "shell32.lib") // 用于SHGetSpecialFolderPath
 #include "QObject.h"
-
+#include "mutex"
 #include "qmap"
+#include <windows.h>
+#include <mmdeviceapi.h>
+#include <audioclient.h>
+#include <functiondiscoverykeys_devpkey.h>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
 namespace AR {
 
     using namespace std;
@@ -36,7 +47,7 @@ namespace AR {
         uint16_t bitsPerSample;
         char subchunk2Id[4] = { 'd', 'a', 't', 'a' };
         uint32_t subchunk2Size;
-    };
+    }; 
     struct AudioTimeInfo {
         size_t bytes_recorded;    // 累计字节数
         size_t samples_recorded;  // 累计样本数
@@ -51,62 +62,19 @@ namespace AR {
         bool InitRecording(const wstring& target_device_name);
         void StartRecording();
         void StopRecording();
+
+        ///windows的接口下暂时没有支持这两个接口
         void PauseRecording();
         void ResumeRecording();
 
         void SetAudioFormat(WAVEFORMATEX format);
 
         bool SaveAsWav(const wstring& filename);
-        void Cleanup();
         void SetTargetDevice(const wstring& device_name);
         void PlayRecordedAudio();
-        void StopRecordedAudio();  // 新增：停止播放
+        void StopRecordedAudio(); 
 
-        void HandleWaveInMessage(UINT uMsg, DWORD_PTR dwParam1, DWORD_PTR dwParam2, AudioTimeInfo currentTimeSec);
-        void HandleWaveOutMessage(UINT uMsg, DWORD_PTR dwParam1, DWORD_PTR dwParam2);
-        const WAVEFORMATEX& GetWaveFormat() const;
-        size_t GetRecordedBytesCount() const;
 
-        // 存储录制音频数据的动态数组（BYTE = unsigned char）
-// 录音时，音频数据会被实时追加到这个容器中
-        vector<BYTE> recordedAudio;
-    private:
-        /// <summary>
-        /// key : time value : volume
-        /// </summary>
-        QMap<size_t, QPair<size_t, double>> map_time_volume;
-        // 音频格式结构体，用于定义录制的音频参数（采样率、位深、声道数等）
-        WAVEFORMATEX waveFormat;
-        // 录音状态标志：
-        //   - true: 正在录音
-        //   - false: 未在录音
-        bool isRecording = false;
-
-        // 选择的音频设备ID：
-        //   - WAVE_MAPPER (= -1) 表示由系统自动选择默认录音设备
-        //   - 也可以指定具体设备ID（通过waveInGetDevCaps获取设备列表）
-        UINT selectedDeviceId = WAVE_MAPPER;
-
-        // 音频缓冲区头结构体（Wave Header）
-        // 用于管理音频数据块，包括缓冲区地址、长度、状态标志等
-        // 需要先填充此结构体，再传递给waveInAddBuffer函数
-        WAVEHDR waveHdr;
-        wstring str_target_device_name;
-        // 添加在全局变量部分
-        HWAVEOUT hWaveOut = NULL;
-        WAVEHDR waveOutHdr;
-        bool isPaused = false; // 暂停状态标志
-
-        // 音频输入设备的句柄（Handle to Waveform Audio Input）
-        // 用于操作麦克风等音频输入设备，初始为NULL表示未打开设备
-        HWAVEIN hWaveIn = NULL;
-
-        /// <summary>
-        /// 这个接口初始化设备，从这个接口进来之后，就会尝试fetch特定的设备
-        /// </summary>
-        /// <returns></returns>
-        UINT FindTargetDevice();
-      void RecordVolume(double volume);
     signals:
         //level值从0-100,level_time代表电平对应的usec
         void Sig_UpdateLevel(double level);
@@ -117,8 +85,25 @@ namespace AR {
 
         //这个录音模块需要移动到线程中去处理，否则会卡死UI线程
 
+    private:
+        DWORD duration_time = 100 * 10000;
+        IMMDevice* GetTargetDevice();
+        IMMDevice* pDevice;
+        std::wstring str_target_device;
+        std::vector<BYTE> audioBuffer;
+        std::mutex bufferMutex;
+        std::condition_variable bufferCV;
+        bool isRecording = false;
+        bool isPlaying = false;
+        bool shouldStop = false;
+        std::thread recordThread;       //录制线程
+        std::thread playThread;         //播放线程
+        std::map<size_t, short> levelMap;
+        size_t currentPos = 0;
+        std::mutex mapMutex;
 
-
+        void StartRecordThreadFunction();           //录制音频数据线程
+        void PlayDataThreadFunction();              //播放以录制音频数据线程
     };
 
 

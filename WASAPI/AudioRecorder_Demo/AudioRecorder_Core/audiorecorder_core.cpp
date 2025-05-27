@@ -1,12 +1,92 @@
 #include "audiorecorder_core.h"
 #ifdef _WIN32
-#endif
+#endif 
 AR::AudioRecorder::AudioRecorder(QObject* parent)
 {
+    connect(this, &AudioRecorder::SThread_Initialize, this, &AudioRecorder::Initialize);
+    connect(this, &AudioRecorder::SThread_SetAudioFormat, this, &AudioRecorder::SetAudioFormat);
+    connect(this, &AudioRecorder::SThread_SetAudioDeviceInfo, this, &AudioRecorder::SetAudioDeviceInfo);
+    connect(this, &AudioRecorder::SThread_StartRecord, this, &AudioRecorder::StartRecord);
+
+    connect(this, &AudioRecorder::SThread_StopRecord, this, &AudioRecorder::StopRecord);
+    connect(this, &AudioRecorder::SThread_PauseRecord, this, &AudioRecorder::PauseRecord);
+    connect(this, &AudioRecorder::SThread_ResumeRecord, this, &AudioRecorder::ResumeRecord);
+    connect(this, &AudioRecorder::SThread_PlayRecordedData, this, &AudioRecorder::PlayRecordedData);
+    connect(this, &AudioRecorder::SThread_StopPlayBack, this, &AudioRecorder::StopPlayBack);
+    connect(this, &AudioRecorder::SThread_SaveRecordAsWavFile, this, &AudioRecorder::SaveRecordAsWavFile);
+    connect(this, &AudioRecorder::SThread_SetTargetDeviceName, this, &AudioRecorder::SetTargetDeviceName);
 }
+
+AR::AudioRecorder::~AudioRecorder()
+{
+#ifdef _WIN32
+    this->recorder->deleteLater();
+#endif 
+}
+
+void AR::AudioRecorder::IInitialize(const QString& str_target_device)
+{
+    this->SThread_Initialize(str_target_device);
+}
+
+void AR::AudioRecorder::ISetAudioFormat(QAudioFormat format)
+{
+    this->SThread_SetAudioFormat(format);
+}
+
+void AR::AudioRecorder::ISetAudioDeviceInfo(QAudioDevice info)
+{
+    this->SThread_SetAudioDeviceInfo(info);
+}
+
+void AR::AudioRecorder::IStartRecord()
+{
+    this->SThread_StartRecord();
+}
+
+void AR::AudioRecorder::IStopRecord()
+{
+    this->SThread_StopRecord();
+}
+
+void AR::AudioRecorder::IPauseRecord()
+{
+    this->SThread_PauseRecord();
+}
+
+void AR::AudioRecorder::IResumeRecord()
+{
+    this->SThread_ResumeRecord();
+}
+
+void AR::AudioRecorder::IPlayRecordedData()
+{
+    this->SThread_PlayRecordedData();
+}
+
+void AR::AudioRecorder::IStopPlayBack()
+{
+    this->SThread_StopPlayBack();
+}
+
+void AR::AudioRecorder::ISaveRecordAsWavFile(const QString& filePath)
+{
+    this->SThread_SaveRecordAsWavFile(filePath);
+}
+
+void AR::AudioRecorder::ISetTargetDeviceName(const QString& str_target_device)
+{
+    this->SThread_SetTargetDeviceName(str_target_device);
+}
+
+
 
 void AR::AudioRecorder::Initialize(const QString& str_target_device)
 {
+    
+
+
+
 #ifdef _WIN32
 
     //设置控制台获得打印正确
@@ -30,6 +110,8 @@ void AR::AudioRecorder::Initialize(const QString& str_target_device)
 	//设置目标设备
 	//this->recorder->SetTargetDevice(str_target_device.toStdWString());
     this->recorder->InitRecording(str_target_device.toStdWString());
+
+
 #endif
 }
 

@@ -7,6 +7,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     this->recorder = new AR::AudioRecorder(this);
+    this->thread = new QThread(this);
+    this->thread->start();
+    this->recorder->moveToThread(this->thread);
     connect(this->recorder, &AR::AudioRecorder::Sig_Volumechanged, this, [=](double volume) {
         QString string;
         string.append(QString::number(volume) + '\n');
@@ -27,12 +30,20 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    
+    if (thread) {
+        thread->quit();  // 请求线程退出事件循环
+        thread->wait();  // 等待线程完全结束
+    }
+
+
+    this->recorder->deleteLater();
     delete ui;
 }
 
 void MainWindow::on_btn_init_clicked()
 {
-    this->recorder->Initialize("AI");
+    this->recorder->IInitialize("AI");
 }
 
 void MainWindow::on_btn_set_format_clicked()
@@ -47,22 +58,22 @@ void MainWindow::on_btn_set_device_clicked()
 
 void MainWindow::on_btn_start_record_clicked()
 {
-    this->recorder->StartRecord();
+    this->recorder->IStartRecord();
 }
 
 void MainWindow::on_btn_stop_record_clicked()
 {
-    this->recorder->StopRecord();
+    this->recorder->IStopRecord();
 }
 
 void MainWindow::on_btn_play_data_clicked()
 {
-    this->recorder->PlayRecordedData();
+    this->recorder->IPlayRecordedData();
 }
 
 void MainWindow::on_btn_stop_data_clicked()
 {
-    this->recorder->StopPlayBack();
+    this->recorder->IStopPlayBack();
 }
 
 void MainWindow::on_btn_save_file_clicked()
@@ -92,7 +103,8 @@ void MainWindow::on_btn_save_file_clicked()
     }
 
     // 调用录音器的保存接口
-    bool success = this->recorder->SaveRecordAsWavFile(filePath);
+    bool success = true;
+        this->recorder->ISaveRecordAsWavFile(filePath);
 
     // 显示操作结果
     if (success) {
@@ -111,6 +123,6 @@ void MainWindow::on_btn_set_device_name_clicked()
         return;
     }
 
-    this->recorder->SetTargetDeviceName(str_ret);
+    this->recorder->ISetTargetDeviceName(str_ret);
 
 }
