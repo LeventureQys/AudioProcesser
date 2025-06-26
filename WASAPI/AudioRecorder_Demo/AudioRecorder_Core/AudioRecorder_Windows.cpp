@@ -210,6 +210,32 @@ void AR::Recorder_Core_Windows::StartRecordThreadFunction()
     //给当前的pDevice找一下当前设备
     this->pDevice = this->GetTargetDevice();
 
+    // 获取设备ID（唯一标识符）
+    LPWSTR pwszDeviceId = nullptr;
+    hr = pDevice->GetId(&pwszDeviceId);
+    if (SUCCEEDED(hr)) {
+        std::wcout << L"Device ID: " << pwszDeviceId << std::endl;
+        CoTaskMemFree(pwszDeviceId); // 必须释放
+    }
+
+    // 2. 获取设备友好名称（Friendly Name）
+    hr = pDevice->OpenPropertyStore(STGM_READ, &pProps);
+    if (SUCCEEDED(hr)) {
+        PROPVARIANT varName;
+        PropVariantInit(&varName);
+
+        // 获取 PKEY_Device_FriendlyName
+        hr = pProps->GetValue(PKEY_Device_FriendlyName, &varName);
+        if (SUCCEEDED(hr)) {
+            std::wcout << L"Device Name: " <<std::wstring(varName.pwszVal) << std::endl;
+        }
+        PropVariantClear(&varName); // 清理 PROPVARIANT
+        pProps->Release(); // 释放属性存储
+    }
+
+
+
+
     hr = pDevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&pAudioClient);
     if (FAILED(hr)) goto Exit;
 
@@ -220,17 +246,23 @@ void AR::Recorder_Core_Windows::StartRecordThreadFunction()
         goto Exit;
     }
 
+    //pWaveFormat->wFormatTag = WAVE_FORMAT_PCM;
+    //pWaveFormat->nChannels = 2;
+    //pWaveFormat->nSamplesPerSec = 48000;
+    //pWaveFormat->wBitsPerSample = 16;
+    //pWaveFormat->nBlockAlign = pWaveFormat->nChannels * pWaveFormat->wBitsPerSample / 8;
+    //pWaveFormat->nAvgBytesPerSec = pWaveFormat->nSamplesPerSec * pWaveFormat->nBlockAlign;
+    //pWaveFormat->cbSize = 0;
     pWaveFormat->wFormatTag = WAVE_FORMAT_PCM;
-    pWaveFormat->nChannels = 2;
-    pWaveFormat->nSamplesPerSec = 48000;
-    pWaveFormat->wBitsPerSample = 16;
-    pWaveFormat->nBlockAlign = pWaveFormat->nChannels * pWaveFormat->wBitsPerSample / 8;
-    pWaveFormat->nAvgBytesPerSec = pWaveFormat->nSamplesPerSec * pWaveFormat->nBlockAlign;
+    //pWaveFormat->nChannels = 1;  // 保持与设备一致
+    //pWaveFormat->wBitsPerSample = 32;
+    //pWaveFormat->nBlockAlign = 4;  // 1声道 * 32bit / 8 = 4字节/帧
+    //pWaveFormat->nAvgBytesPerSec = 192000; // 48000 * 4
     pWaveFormat->cbSize = 0;
-
     WAVEFORMATEX* pWaveFormat2;
-    hr = pAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, pWaveFormat, &pWaveFormat2);
 
+    hr = pAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, pWaveFormat, &pWaveFormat2);
+    
     hr = pAudioClient->Initialize(
         AUDCLNT_SHAREMODE_SHARED,
         AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
@@ -269,25 +301,36 @@ void AR::Recorder_Core_Windows::StartRecordThreadFunction()
         if (FAILED(hr)) break;
 
         if (pData != NULL) {
-            // 电平计算
+            // 电平计算（支持 32-bit）
             const float kMinDB = -60.0f;
             const float kMaxDB = 0.0f;
             float rmsLevel = 0.0f;
 
-            int16_t* samples = reinterpret_cast<int16_t*>(pData);
-            size_t sampleCount = numFramesAvailable * pWaveFormat->nChannels;
+            if (pWaveFormat->wBitsPerSample == 32) {
+                const int32_t* samples32 = reinterpret_cast<const int32_t*>(pData);
+                size_t sampleCount = numFramesAvailable * pWaveFormat->nChannels;
 
-            for (size_t i = 0; i < sampleCount; i++) {
-                float sample = samples[i] / 32768.0f;
-                rmsLevel += sample * sample;
+                for (size_t i = 0; i < sampleCount; i++) {
+                    float sample = samples32[i] / 2147483648.0f; // 32-bit → [-1.0, 1.0]
+                    rmsLevel += sample * sample;
+                }
+            }
+            else { // 16-bit
+                const int16_t* samples16 = reinterpret_cast<const int16_t*>(pData);
+                size_t sampleCount = numFramesAvailable * pWaveFormat->nChannels;
+
+                for (size_t i = 0; i < sampleCount; i++) {
+                    float sample = samples16[i] / 32768.0f; // 16-bit → [-1.0, 1.0]
+                    rmsLevel += sample * sample;
+                }
             }
 
-            rmsLevel = sqrt(rmsLevel / sampleCount);
+            rmsLevel = sqrt(rmsLevel / (numFramesAvailable * pWaveFormat->nChannels));
             float rmsDb = 20.0f * log10(rmsLevel + 0.000001f);
             rmsDb = std::max(kMinDB, std::min(kMaxDB, rmsDb));
             short rmsMapped = static_cast<short>(((rmsDb - kMinDB) / (kMaxDB - kMinDB)) * 100.0f);
 
-            // 存储电平数据到map
+            // 存储电平数据
             {
                 std::lock_guard<std::mutex> lock(mapMutex);
                 levelMap[currentPos] = rmsMapped;
@@ -296,13 +339,59 @@ void AR::Recorder_Core_Windows::StartRecordThreadFunction()
                 sampe_count = 0;
                 emit this->Sig_UpdateLevel(rmsMapped);
             }
-            
 
-            // 更新音频缓冲区和位置
+            // 更新音频缓冲区
             std::lock_guard<std::mutex> lock(bufferMutex);
             size_t dataSize = numFramesAvailable * pWaveFormat->nBlockAlign;
-            audioBuffer.insert(audioBuffer.end(), pData, pData + dataSize);
-            currentPos += dataSize;  // 更新当前位置
+
+            if (pWaveFormat->nChannels == 1 && pWaveFormat->wBitsPerSample == 32) {
+                // 单声道 32-bit → 双声道 16-bit
+                const int32_t* pMono32Data = reinterpret_cast<const int32_t*>(pData);
+                std::vector<int16_t> stereoData;
+                stereoData.reserve(numFramesAvailable * 2);
+
+                for (size_t i = 0; i < numFramesAvailable; ++i) {
+                    int16_t sample16 = static_cast<int16_t>(pMono32Data[i] >> 16);
+                    stereoData.push_back(sample16); // 左
+                    stereoData.push_back(sample16); // 右
+                }
+
+                audioBuffer.insert(
+                    audioBuffer.end(),
+                    reinterpret_cast<const char*>(stereoData.data()),
+                    reinterpret_cast<const char*>(stereoData.data() + stereoData.size())
+                );
+                currentPos += numFramesAvailable * 4; // 双声道 16-bit 大小
+            }
+            else if (pWaveFormat->nChannels == 2 && pWaveFormat->wBitsPerSample == 32) {
+                // 双声道 32-bit → 双声道 16-bit
+                const int32_t* pStereo32Data = reinterpret_cast<const int32_t*>(pData);
+                std::vector<int16_t> stereo16Data;
+                stereo16Data.reserve(numFramesAvailable * 2);
+
+                for (size_t i = 0; i < numFramesAvailable; ++i) {
+                    // 左声道 32→16
+                    int16_t left16 = static_cast<int16_t>(pStereo32Data[i * 2] >> 16);
+                    // 右声道 32→16
+                    int16_t right16 = static_cast<int16_t>(pStereo32Data[i * 2 + 1] >> 16);
+
+                    stereo16Data.push_back(left16);
+                    stereo16Data.push_back(right16);
+                }
+
+                audioBuffer.insert(
+                    audioBuffer.end(),
+                    reinterpret_cast<const char*>(stereo16Data.data()),
+                    reinterpret_cast<const char*>(stereo16Data.data() + stereo16Data.size())
+                );
+                currentPos += numFramesAvailable * 4; // 双声道 16-bit 大小
+            }
+            else {
+                // 其他格式（如 16-bit），直接写入
+                audioBuffer.insert(audioBuffer.end(), pData, pData + dataSize);
+                currentPos += dataSize;
+            }
+
             bufferCV.notify_one();
         }
 
@@ -319,7 +408,7 @@ Exit:
     if (pWaveFormat) CoTaskMemFree(pWaveFormat);
     if (pCaptureClient) pCaptureClient->Release();
     if (pAudioClient) pAudioClient->Release();
-    this->StopRecording();
+    
 }
 
 void AR::Recorder_Core_Windows::PlayDataThreadFunction()
@@ -415,11 +504,9 @@ void AR::Recorder_Core_Windows::PlayDataThreadFunction()
 
             if (allDataSubmitted)
             {
-                // 等待缓冲区播放完毕 (numFramesPadding == 0)
-                if (numFramesPadding == 0)
-                {
-                    break; // 所有数据已播放完毕
-                }
+                // 直接退出循环，无需等待 numFramesPadding == 0
+                 // （因为数据已全部提交，后续由外部循环等待播放完毕）
+                break; // 退出主循环
             }
 
             Sleep(10);
@@ -440,6 +527,7 @@ void AR::Recorder_Core_Windows::PlayDataThreadFunction()
             bytesToCopy = bytesAvailable;
             isLastBlock = true; // 标记这是最后一块数据
         }
+       
 
         if (bytesToCopy > 0) {
             memcpy(pData, &audioBuffer[pos], bytesToCopy);
@@ -467,7 +555,8 @@ void AR::Recorder_Core_Windows::PlayDataThreadFunction()
 
         lock.unlock();
 
-        hr = pRenderClient->ReleaseBuffer(numFramesAvailable, isLastBlock ? AUDCLNT_BUFFERFLAGS_SILENT : 0);
+        UINT32 framesToWrite = (UINT32)(bytesToCopy / pWaveFormat->nBlockAlign);  // 计算实际写入的帧数
+        hr = pRenderClient->ReleaseBuffer(framesToWrite, isLastBlock ? AUDCLNT_BUFFERFLAGS_SILENT : 0);
         if (FAILED(hr)) break;
     }
     // 确保所有数据都已播放完毕
@@ -499,7 +588,6 @@ Exit:
     if (pEnumerator) pEnumerator->Release();
     CoUninitialize();
     emit this->Sig_PlaybackFinished();
-    this->StopRecordedAudio();
 }
 
 #include <windows.h>
@@ -543,6 +631,10 @@ void AR::Recorder_Core_Windows::StartRecording()
         {
             std::lock_guard<std::mutex> lock(bufferMutex);
             this->audioBuffer.clear();
+        }
+        {
+            std::lock_guard<std::mutex> lock(bufferMutex);
+            this->levelMap.clear();
         }
         //线程中运行此函数
         if (recordThread.joinable()) {
