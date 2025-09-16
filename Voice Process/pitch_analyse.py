@@ -18,10 +18,14 @@ def pre_emphasis(signal, alpha=0.97):
     return lfilter([1, -alpha], [1], signal)
 
 def compute_cepstrum(frame, n_fft):
-    """计算复倒谱（保留相位信息）"""
+    """改进的复倒谱计算（幅度压缩+相位处理）"""
     spectrum = np.fft.fft(frame, n_fft)
     log_spectrum = np.log(np.abs(spectrum) + 1e-10) + 1j * np.unwrap(np.angle(spectrum))
-    return np.fft.ifft(log_spectrum).real
+    cepstrum = np.fft.ifft(log_spectrum).real
+    
+    # 幅度压缩：使用双曲正切函数限制动态范围
+    cepstrum = np.tanh(0.5 * cepstrum / np.max(np.abs(cepstrum)))
+    return cepstrum
 
 def detect_pitch(cepstrum, fs, min_lag=None, max_lag=None):
     """改进的基音检测算法"""
