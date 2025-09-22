@@ -17,6 +17,7 @@
 | 谱减法示例|2024.10.30 | Venture|
 | webrtc的降噪方案 | 2025.1.23 | Venture |
 | 降噪算法的基准测试 | 2025.4.28 | Venture |
+| GTCRN - 一种低延迟、低开销的机器学习降噪算法| 2025.9.22 | Venture |
 
 # 文件夹说明
 | 文件夹名称   | 内容说明   | 作者    |
@@ -30,7 +31,8 @@
 | WASAPI     | WASAPI实操项目，主要用于后续RealTime驱动开发调研       |  Venture      |
 | NoisyPrint|谱减法示例 | Venture|
 | Webrtc_NoisyReduce| WebRtc降噪模块 | Venture |
-| Noise_Reduction_Benchmark | 降噪算法基准测试 | Venture
+| Noise_Reduction_Benchmark | 降噪算法基准测试 | Venture|
+|gtcrn_onnx_runtime| 低延迟降噪算法| Venture |
 
 ## 介绍
 FIR滤波器仿真与计算核心，使用纯C++开发，Qt界面做显示
