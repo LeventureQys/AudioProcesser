@@ -5,18 +5,21 @@
 滤波器相关知识学习与实践
 
 # 更新说明
-| 更新内容    | 更新时间   | 作者    |
+| 更新内容    | 更新时间   | 作者    | 
 | :-------------: | :-----------: | ------------: |
-| DeepFilter去除环境音 CLI RealTime| 2024.7.18|Venture|
-|   DeepFilter去除环境音Demo   | 2024.7.15      | Venture     |
-|   WASAPI实践Demo   | 2024.7.15      | Venture     |
-|   基于VITS的RVC语音转换工具实践   | 2024.7.12      | Venture     |
+| DeepFilter去除环境音 CLI RealTime| 2024.7.18|Venture| 
+|   DeepFilter去除环境音Demo   | 2024.7.15      | Venture |
+|   WASAPI实践Demo   | 2024.7.15      | Venture     | 
+|   基于VITS的RVC语音转换工具实践   | 2024.7.12      | Venture  |
 |   采样与重构的代码实践   | 2024.7.10      | Venture     |
 | 几种常见的FIR滤波器实践     | 2024.7.10      | Venture     |
 | 几种常见的IIR滤波器实践     | 2024.7.10       |  Venture      |
 | 谱减法示例|2024.10.30 | Venture|
+| FastASR - 快速STT | 2024.12.5 | Venture|
 | webrtc的降噪方案 | 2025.1.23 | Venture |
-| 降噪算法的基准测试 | 2025.4.28 | Venture |
+| Noise Suppressor 算法及移植| 2025.1.23 | Venture |
+| MOS - 降噪算法的基准测试 | 2025.4.28 | Venture |
+| 复倒谱检测、基音检测的实现方式 | 2025.11.12 | Venture |
 | GTCRN - 一种低延迟、低开销的机器学习降噪算法| 2025.9.22 | Venture |
 | 测试实时音频算法的算法平台 | 2025.11.12 | Venture|
 
