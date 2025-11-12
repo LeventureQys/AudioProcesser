@@ -43,3 +43,5 @@ Document/FilterDesignInfo/~$lter design.docx
 *.pdb
 *.def
 *.pc
+*.onnx
+*.index
