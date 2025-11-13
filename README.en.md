@@ -1,36 +1,77 @@
 # FIRFilter_Venture
 
-#### Description
-FIR滤波器仿真与计算核心，使用纯C++开发，Qt界面做显示
+# Preface
 
-#### Software Architecture
-Software architecture description
+Learning and Practice of Filter-Related Knowledge
 
-#### Installation
+# Update Notes
+| Update Content    | Update Date   | Author    | 
+| :-------------: | :-----------: | ------------: |
+| DeepFilter Remove Environmental Noise CLI RealTime| 2024.7.18|Venture| 
+|   DeepFilter Remove Environmental Noise Demo   | 2024.7.15      | Venture |
+|   WASAPI Practice Demo   | 2024.7.15      | Venture     | 
+|   RVC Voice Conversion Tool Practice Based on VITS   | 2024.7.12      | Venture  |
+|   Sampling and Reconstruction Code Practice   | 2024.7.10      | Venture     |
+| Several Common FIR Filter Practices     | 2024.7.10      | Venture     |
+| Several Common IIR Filter Practices     | 2024.7.10       |  Venture      |
+| Spectral Subtraction Example|2024.10.30 | Venture|
+| FastASR - Fast STT | 2024.12.5 | Venture|
+| WebRTC Noise Reduction Solution | 2025.1.23 | Venture |
+| Noise Suppressor Algorithm and Porting| 2025.1.23 | Venture |
+| MOS - Benchmark Testing for Noise Reduction Algorithms | 2025.4.28 | Venture |
+| Implementation Methods for Complex Cepstrum Detection and Pitch Detection | 2025.11.12 | Venture |
+| GTCRN - A Low-Latency, Low-Overhead Machine Learning Noise Reduction Algorithm| 2025.9.22 | Venture |
+| Testing Platform for Real-Time Audio Algorithms | 2025.11.12 | Venture|
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+# Folder Description
+| Folder Name   | Content Description   | Author    |
+| :-------------: | :-----------: | ------------: |
+|   Audio   | Test Audio, Including Recordings and Music      | Venture     |
+|   DASP   | Simulation Code Related to Audio Digital Signal Processing      | Venture     |
+|   DeepFilter   | Machine Learning Noise Reduction Module Demo      | Venture     |
+|   Document   | Notes on Audio Digital Signal Processing, with a Lot of Content, Including Chinese and English Reference Books, Refined Extracts      | Venture     |
+| PaddleSpeech     | Content Related to the Audio Machine Learning Framework PaddleSpeech      | Venture     |
+| RVC     | RVC Model Testing Based on VITS       |  Venture      |
+| WASAPI     | WASAPI Practical Project, Mainly for Subsequent RealTime Driver Development Research       |  Venture      |
+| NoisyPrint| Spectral Subtraction Example | Venture|
+| Webrtc_NoisyReduce| WebRtc Noise Reduction Module | Venture |
+| Noise_Reduction_Benchmark | Benchmark Testing for Noise Reduction Algorithms | Venture|
+|gtcrn_onnx_runtime| Low-Latency Noise Reduction Algorithm| Venture |
+| RealTime-Mic-Algorithm-Testing-Platform| Testing Platform for Real-Time Audio Algorithms, Dependent on Qt | Venture
 
-#### Instructions
+## Introduction
+The FIR filter simulation and computation core is developed purely in C++, with Qt interface for display.
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+The content in FIRSimulation is Python simulation of FIR filters using Python's scipy library, including various types of filters such as Peaking, Low-Pass, High-Pass, Band-Pass, High Shelf, Low Shelf, Notch, etc.
 
-#### Contribution
+1. IIR Peaking Filter 
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142435.png"/>
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+2. IIR LowShelf Filter 
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142609.png"/>
+3. IIR HighShelf Filter
 
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142638.png"/>
 
-#### Gitee Feature
+4. IIR LowPassFilter 
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)1
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142709.png"/>
+
+5. IIR HighPass Filter
+
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142737.png"/>
+
+6. FIR PeakingFilter
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142803.png"/>
+
+7. FIR LowShelf Filter
+
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142827.png"/>
+8. FIR HighShelf Filter
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142903.png"/>
+9. FIR LowPass Filter 
+
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142928.png"/>
+10. FIR HighPass Filter
+
+<img src="https://raw.githubusercontent.com/LeventureQys/Picturebed/main/image/20240701142948.png"/>
