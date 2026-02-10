@@ -1,199 +1,251 @@
-# GTCRN 模型演进：从离线到实时
+# GTCRN 演进路径
 
-## 三个版本概览
+记录 v1 → v2 → v3 的改动和原因。
 
-这个项目有三个版本的GTCRN模型：
+## 版本概览
 
-| 版本 | 特点 | 参数量 | DNSMOS |
-|------|------|--------|--------|
-| V1 | 离线处理，效果最好 | 139K | 3.147 |
-| V2 | 加了瞬态感知损失 | 139K | 3.147 |
-| V3 | 实时流式，10ms延迟 | 145K | 2.983 |
+| 版本 | 改动点 | 参数量 | DNSMOS | 实时 |
+|------|--------|--------|--------|------|
+| v1 baseline | 基线 | 139K | 3.15 | × |
+| v2 transient | 换损失函数 | 139K | 3.15 | × |
+| v3 causal | 因果化改造 | 145K | 2.98 | √ |
 
-简单说：V1是baseline，V2针对键盘敲击这类突发噪声做了优化，V3改成了因果模型可以实时跑。
-
-## 网络结构
-
-整体是个U-Net风格的编码器-解码器结构：
+## 网络结构 (v1/v2 共用)
 
 ```
-输入频谱 (513 bins)
-    ↓
-ERB变换 (513 → 219)
-    ↓
-编码器 (下采样 + GTConv×6)
-    ↓
-DPGRNN ×2 (双路径GRU)
-    ↓
-解码器 (GTConv×6 + 上采样)
-    ↓
-ERB逆变换 (219 → 513)
-    ↓
-输出 (Complex Ratio Mask)
+输入 spec (B, 513, T, 2)
+    │
+    ├─ 可学习频带权重 (513,)
+    │
+    ▼
+ERB_48k.bm(): 513 → 219
+    │   低频171保留，高频342→48 ERB band
+    │
+    ▼
+SFE_Lite: DWConv(1×5) → PWConv → BN
+    │
+    ▼
+┌─ Encoder ─────────────────────────────┐
+│  DSConv: 219→110 (stride=2)   ← skip1 │
+│  DSConv: 110→55  (stride=2)   ← skip2 │
+│  GTConvLite×6 (d=1,2,4,8,4,2) ← skip3-8
+│  SubbandAttention                     │
+└───────────────────────────────────────┘
+    │
+    ▼
+DPGRNN_Enhanced × 2
+    │  intra: 双向GRU (频率轴)
+    │  inter: 单向GRU (时间轴)
+    │
+    ▼
+┌─ Decoder ─────────────────────────────┐
+│  GTConvLite×6 + skip (逆序)           │
+│  DSDeconv: 55→110 + skip2             │
+│  DSDeconv: 110→219 + skip1            │
+└───────────────────────────────────────┘
+    │
+    ▼
+ERB_48k.bs(): 219 → 513
+    │
+    ▼
+CRM掩码 → 输出
 ```
 
-几个关键模块：
+### GTConvLite 内部
 
-**ERB变换**：把513个线性频点压缩到219个ERB频带。低频保留更多细节，高频合并。这样既减少计算量，又符合人耳听觉特性。
+```
+x → DWConv(3×3, dilation) → PWConv → BN → PReLU
+  → TRALite (时序注意力)
+  → SEBlock (通道注意力)
+  → + x (残差)
+```
 
-**GTConvLite**：深度可分离卷积 + 时间注意力(TRA) + SE通道注意力 + 残差连接。用了不同的dilation rate [1,2,4,8,4,2]来扩大感受野。
+### DPGRNN 内部
 
-**DPGRNN**：双路径GRU。Intra-path沿频率轴跑（双向），Inter-path沿时间轴跑（V1/V2双向，V3单向）。
+```
+x (B,C,T,F)
+  → reshape (B*T, F, C)
+  → Linear → 双向GRU (频率轴) → Linear
+  → reshape + LayerNorm
+  → reshape (B*F, T, C)
+  → Linear → 单向GRU (时间轴) → Linear
+  → reshape + LayerNorm
+  → 输出
+```
 
-## V1 → V2：瞬态感知损失
+---
+
+## v1 → v2: 换损失函数
 
 ### 问题
 
-V1在DNSMOS上分数不错，但实际听的时候发现：键盘敲击、鼠标点击这类突发噪声处理得不太干净，会有残留。
+v1 用的是标准 SpecRIMAGLoss，对所有帧一视同仁。但实际听感上，键盘敲击、鼠标点击这类突发噪音处理得不好。DNSMOS 是整段平均，掩盖了这个问题。
 
-这其实挺好理解的：DNSMOS是对整段音频的平均评分，但人耳对突发噪声特别敏感。一段3秒的音频里，哪怕只有0.1秒的噪声没处理好，听感就会差很多。
+### 方案
 
-### 解决方案
-
-不改架构，只改损失函数。思路是：检测出哪些帧是"瞬态帧"（能量突变的帧），然后给这些帧更高的损失权重。
+不改网络，只改损失函数。加了瞬态检测：
 
 ```python
-# 瞬态检测
-energy = torch.sum(spec_mag ** 2, dim=-1)
-energy_diff = torch.abs(energy[:, 1:] - energy[:, :-1])
-transient_mask = energy_diff > (2.0 * mean_energy)
+# 检测能量突变
+energy_diff = |energy[t] - energy[t-1]|
+transient = energy_diff > threshold * mean_energy
 
-# 损失加权
-# 瞬态帧权重5.0，普通帧权重1.0
+# 瞬态帧损失放大5倍
+loss = Σ weight[t] * frame_loss[t]
+weight[t] = 5.0 if transient[t] else 1.0
 ```
 
-参数是试出来的：transient_weight=5.0, energy_threshold=2.0。权重太高会导致语音失真，阈值太高会漏检。
+### 结果
 
-### 效果
+- DNSMOS 基本持平 (3.1474 → 3.147)
+- 瞬态噪音主观听感明显改善
+- 训练时间变长 (29 → 71 epochs)
 
-DNSMOS基本没变（3.1474 → 3.147），但瞬态噪声处理明显好了。
+### 为什么不改网络
 
-DNSMOS没提升甚至略降是正常的：优化器把更多"精力"放在瞬态帧上，稳态帧的表现会稍微牺牲一点。但从听感上来说是值得的。
+能用损失函数解决的问题就不动架构。改架构的代价：
+- 要重新验证各模块交互
+- 可能引入新bug
+- 推理时有额外开销
 
-## V2 → V3：因果化改造
+改损失函数只影响训练，推理零开销。
 
-### 为什么要因果化
+---
 
-V1/V2是离线模型，处理的时候可以看到整段音频，包括"未来"的帧。这样效果好，但没法实时用。
+## v2 → v3: 因果化
 
-实时通话对延迟很敏感，一般要求端到端150ms以内。留给降噪的预算也就10-20ms。V2的感受野有好几百毫秒，根本没法用。
+### 问题
 
-因果模型只能看当前帧和历史帧，延迟可以做到单帧（10ms）。
+v1/v2 是离线模型，要看完整段音频才能处理。没法用在实时场景（通话、直播）。
 
-### 改了什么
+延迟分析：
+- 非因果模型需要看"未来"帧
+- 感受野决定最小延迟，v2大概要200-500ms
+- 实时通话要求<50ms
 
-主要改三个地方：
+### 方案
 
-**1. 卷积的padding**
+把所有"偷看未来"的操作改掉：
 
-```python
-# V2：对称padding，左右各填充一半
-pad = dilation * (kernel - 1) // 2
+| 模块 | v2 (非因果) | v3 (因果) |
+|------|-------------|-----------|
+| GTConvLite | padding=(d,1) 对称 | pad_t=(k-1)*d 左边 |
+| TRALite | Conv1d padding=2 | F.pad(x,(4,0)) |
+| DPGRNN inter | 双向GRU | 单向GRU |
 
-# V3：只在左边填充
-pad = dilation * (kernel - 1)
+频率轴的操作不用改，因为频率轴不涉及时间因果。
+
+### v3 网络结构
+
+```
+输入 spec (B, 513, T, 2)
+    │
+    ▼
+ERB_48k.bm(): 513 → 219
+    │
+    ▼
+in_conv: Conv2d(2→3)
+    │
+    ▼
+┌─ CausalEncoder ───────────────────────┐
+│  DSConv: 219→110              ← skip1 │
+│  DSConv: 110→55               ← skip2 │
+│  CausalGTConvLite×6           ← skip3-8
+│  SubbandAttention                     │
+└───────────────────────────────────────┘
+    │
+    ▼
+CausalDPGRNN × 2
+    │  intra: 双向GRU (频率轴) ← 不用改
+    │  inter: 单向GRU (时间轴) ← 改成单向
+    │
+    ▼
+┌─ CausalDecoder ───────────────────────┐
+│  CausalGTConvLite×6 + skip            │
+│  Fuse + DSDeconv: 55→110              │
+│  DSDeconv: 110→219 + skip1            │
+└───────────────────────────────────────┘
+    │
+    ▼
+out_conv → ERB_48k.bs() → CRM → 输出
 ```
 
-**2. TRA模块**
+### 因果模块对比
 
-```python
-# V2：对称卷积
-self.conv = nn.Conv1d(ch, ch, kernel_size=5, padding=2)
-
-# V3：因果卷积，手动左填充
-self.conv = nn.Conv1d(ch, ch, kernel_size=5, padding=0)
-x = F.pad(x, (4, 0))  # 只填充左边
+**GTConvLite → CausalGTConvLite**
+```
+离线: padding=(dilation, 1)，前后各看dilation帧
+因果: F.pad(x, (0,0,pad_t,0))，只看过去pad_t帧
+      pad_t = (kernel-1) * dilation
 ```
 
-**3. DPGRNN的Inter-path**
-
-```python
-# V2：双向GRU
-self.inter_gru = nn.GRU(..., bidirectional=True)
-
-# V3：单向GRU
-self.inter_gru = nn.GRU(..., bidirectional=False)
+**TRALite → CausalTRA**
+```
+离线: Conv1d(k=5, padding=2)，前后各看2帧
+因果: Conv1d(k=5, padding=0) + F.pad(x,(4,0))，只看过去4帧
 ```
 
-注意Intra-path（沿频率轴）还是双向的，因为频率轴不涉及时间因果性。
-
-### 流式推理的状态管理
-
-因果模型做流式推理需要维护帧间状态：
-- GTConv的历史帧缓存（12层，不同dilation）
-- TRA的历史均值
-- GRU的hidden state
-- 编码器到解码器的skip connection
-
-### 因果性验证
-
-怎么确认模型真的是因果的？改一下第25帧之后的输入，看前25帧的输出变不变：
-
-```python
-x1 = torch.randn(1, 50, 513)
-x2 = x1.clone()
-x2[:, 25:, :] = torch.randn(1, 25, 513)  # 改后25帧
-
-y1 = model(x1)
-y2 = model(x2)
-
-# 前25帧应该完全一样
-assert (y1[:, :25] - y2[:, :25]).abs().max() < 1e-6
-# 后25帧应该不一样
-assert (y1[:, 25:] - y2[:, 25:]).abs().max() > 0
+**DPGRNN → CausalDPGRNN**
+```
+离线: inter用双向GRU，能看整个时间序列
+因果: inter改单向GRU，只能看到当前和过去
 ```
 
-### 性能代价
+### 其他改动
 
-参数量从139K涨到145K。主要是因为单向GRU要达到双向GRU的建模能力，需要把hidden_size从48加到64。
+- 激活函数: PReLU → SiLU
+- DSConv: 加了中间BN，顺序调整
+- 参数量: 139K → 145K (+4%)
 
-DNSMOS从3.147掉到2.983，下降了5%左右。这是因果模型的固有限制：看不到未来信息，理论上限就比非因果模型低。
+参数量增加是因为单向GRU要增大hidden_size才能保持建模能力。
 
-但换来了10ms的延迟和0.21的RTF（实时因子），可以跑实时了。
+### 结果
 
-## 什么时候用哪个版本
+- DNSMOS: 3.15 → 2.98 (-5%)
+- 延迟: 10ms (单帧)
+- RTF: 0.21 (还有4.7倍余量)
 
-| 场景 | 推荐 | 原因 |
-|------|------|------|
-| 播客后期、视频配音 | V1 | 质量最好，不在乎延迟 |
-| 办公环境录音 | V2 | 键盘鼠标噪声处理更好 |
-| 实时通话、直播 | V3 | 必须低延迟 |
+掉了0.17分是预期内的。因果模型看不到未来，信息量必然少于非因果模型。
 
-## 一些经验
+### 流式状态
 
-**改损失函数还是改架构？**
+实时推理要维护帧间状态：
+- GTConv缓存: 12层，不同dilation长度不同
+- TRA历史: 12层，每层4帧
+- GRU hidden: 2×DPGRNN × 2层
+- Skip缓存: 8组
 
-如果问题是局部的（比如特定类型噪声处理不好），优先改损失函数或数据。改架构的代价大：要重新验证、可能引入bug、推理时有额外开销。
-
-V1→V2就是典型例子：瞬态噪声问题通过损失函数解决，零推理开销。
-
-**因果化的性能损失能接受吗？**
-
-语音增强领域，5-10%的DNSMOS下降一般可以接受，前提是没有明显的artifact（杂音、断续）。V3掉了5%，但听感上还行。
-
-关键是要做主观测试，不能只看数字。有时候客观指标掉了，主观感受反而没那么差。
-
-**什么时候停止优化？**
-
-- 达到应用需求了
-- 边际收益太小了
-- 碰到理论上限了（比如因果模型的信息论限制）
-
-V3的2.983已经够用了，再往上优化投入产出比不高。
+---
 
 ## 文件结构
 
 ```
 archived_models/
 ├── v1_baseline/
+│   ├── original_export/
+│   │   └── gtrcn_light_v3_48k_enhanced.py
 │   └── best_model_epoch29_score3.1474.tar
+│
 ├── v2_transient/
 │   ├── config.yaml
-│   └── best_model_epoch71_score3.147.tar
+│   ├── best_model_epoch71_score3.147.tar
+│   └── full_training_run/
+│
 └── v3_causal_stream/
-    ├── models/gtcrn_light_v3_48k_causal_v2.py
-    ├── checkpoints/best_model_epoch35_score2.983.tar
+    ├── models/
+    │   └── gtcrn_light_v3_48k_causal_v2.py
+    ├── checkpoints/
+    │   └── best_model_epoch35_score2.983.tar
     └── C_Stream/  # C语言实现
 ```
 
-V3还有完整的C语言实现，方便嵌入式部署。
+---
+
+## 选型建议
+
+| 场景 | 推荐 | 原因 |
+|------|------|------|
+| 离线处理 | v1 | 质量最高 |
+| 办公环境 | v2 | 瞬态处理好 |
+| 实时通话 | v3 | 低延迟 |
+| 嵌入式部署 | v3 + C实现 | 资源占用小 |
