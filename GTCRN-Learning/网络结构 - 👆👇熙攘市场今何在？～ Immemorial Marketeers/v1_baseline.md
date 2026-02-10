@@ -1,23 +1,23 @@
 # GTCRN-Light v1 Baseline
 
-基于原版 GTCRN (v0) 的轻量化改造，用标准 SpecRIMAGLoss 训练。
+基于原版 GTCRN (v0) 的 48kHz 适配与增强版本，用标准 SpecRIMAGLoss 训练。
 
 ## 基本信息
 
 - **Best Epoch**: 29
 - **DNSMOS_OVR**: 3.1474
-- **参数量**: 139,482 (vs v0 ~500K，降72%)
+- **参数量**: 139,482 (vs v0 ~50K，为适配48kHz增加)
 - **采样率**: 48kHz (vs v0 16kHz)
 
 ## 相比 v0 的改进
 
-| 模块 | v0 (原版) | v1 (本版本) |
-|------|-----------|-------------|
-| ERB | Linear (可训练) | Buffer (固定) |
-| SFE | Unfold 通道展开 | DWConv(1×5) |
-| 卷积 | 标准 Conv2d | DW-Separable |
-| GTConv | Conv + RNN门控 | GTConvLite |
-| DPGRNN | C 维 RNN | C→r→C 瓶颈 |
+| 改动 | v0 (原版) | v1 (本版本) | 原因 |
+|------|-----------|-------------|------|
+| 采样率 | 16kHz | 48kHz | 适配高采样率 |
+| ERB频带 | 129 | 219 | 覆盖更宽频率 |
+| GTConv层数 | 3 | 6 | 增强建模能力 |
+| ERB实现 | Linear (可训练) | Buffer (固定) | 便于部署 |
+| TRA | RNN/Attention | TRALite (Conv) | 去状态化 |
 
 ## 网络结构
 

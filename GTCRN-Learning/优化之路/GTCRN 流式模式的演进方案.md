@@ -6,78 +6,39 @@
 
 | 版本 | 改动点 | 参数量 | DNSMOS | 采样率 | 实时 |
 |------|--------|--------|--------|--------|------|
-| v0 raw | 原版 GTCRN | ~500K | - | 16kHz | × |
-| v1 baseline | 轻量化改造 | 139K | 3.15 | 48kHz | × |
+| v0 raw | 原版 GTCRN | ~50K | - | 16kHz | × |
+| v1 baseline | 48kHz适配+增强 | 139K | 3.15 | 48kHz | × |
 | v2 transient | 换损失函数 | 139K | 3.15 | 48kHz | × |
 | v3 causal | 因果化改造 | 145K | 2.98 | 48kHz | √ |
 
 ---
 
-## v0 → v1: 轻量化改造
+## v0 → v1: 48kHz 适配与增强
 
-### 问题
+### 背景
 
-原版 GTCRN 存在几个工程问题：
-- **参数量大**: 标准卷积 + 全维度 RNN，约 500K 参数
-- **计算量高**: 没有深度可分离优化
-- **部署困难**: TRA 用 RNN/Attention 实现，状态管理复杂
+原版 GTCRN 已经很轻量（50K参数），但：
 - **采样率**: 原版针对 16kHz，需要适配 48kHz
+- **频带数**: 16kHz 用 129 ERB，48kHz 需要 219 ERB
+- **性能**: 需要更强的建模能力来处理更宽的频带
 
 ### 方案
 
-四大轻量化支柱：
-
-| 模块 | v0 (原版) | v1 (轻量化) | 收益 |
-|------|-----------|-------------|------|
-| ERB | Linear (可训练) | Buffer (固定滤波器组) | 参数归零 |
-| SFE | Unfold 通道展开 | DWConv(1×5) | 低开销 |
-| 卷积 | 标准 Conv2d | DW-Separable | 参数/MACs 降 ~8x |
-| GTConv | Conv + RNN门控 | GTConvLite (DW + TRALite) | 参数大幅下降 |
-| DPGRNN | C 维 RNN | C→r→C 瓶颈 | 参数按 α² 缩减 |
-
-### 具体改动
-
-**1. ERB 固定化**
-```
-v0: ERB 用 Linear 层实现，参数可训练
-v1: ERB 用 register_buffer 固定三角滤波器组，参数归零
-```
-
-**2. 卷积 DW-Separable 化**
-```
-v0: Conv2d(C_in, C_out, k=3×3)
-    参数: C_in × C_out × 9
-
-v1: DWConv(C, C, k=3×3, groups=C) + PWConv(C, C, k=1×1)
-    参数: C × 9 + C × C ≈ C² (vs C² × 9)
-```
-
-**3. TRA 轻量化**
-```
-v0: RNN/Attention 门控，有隐藏状态
-v1: TRALite = DWConv1d(k=5) + PWConv1d + Sigmoid
-    零状态，可量化，参数极小
-```
-
-**4. DPGRNN 瓶颈化**
-```
-v0: GRU(input=C, hidden=C)
-v1: Linear(C→r) → GRU(input=r, hidden=r) → Linear(r→C)
-    r ≈ 0.75C，参数按 α² 缩减
-```
-
-**5. 48kHz 适配**
-```
-v0: n_fft=512, 257频点, 129 ERB
-v1: n_fft=1024, 513频点, 219 ERB
-    频率分辨率更高，适合高采样率
-```
+| 改动 | v0 (原版) | v1 (48kHz) | 原因 |
+|------|-----------|------------|------|
+| 采样率 | 16kHz | 48kHz | 适配高采样率音频 |
+| n_fft | 512 | 1024 | 更高频率分辨率 |
+| ERB频带 | 129 | 219 | 覆盖更宽频率范围 |
+| GTConv层数 | 3 | 6 | 增强建模能力 |
+| 通道数 | 较小 | 32 (width_mult=2) | 增强特征表达 |
+| ERB实现 | Linear (可训练) | Buffer (固定) | 便于部署 |
+| TRA | RNN/Attention | TRALite (Conv) | 去状态化 |
 
 ### 结果
 
-- 参数量: ~500K → 139K (-72%)
+- 参数量: ~50K → 139K (为了适配48kHz和提升性能)
 - 采样率: 16kHz → 48kHz
-- 部署友好: 全卷积 + 标准 GRU，易导出 ONNX
+- 部署友好: ERB固定化、TRA去状态化
 
 ---
 
