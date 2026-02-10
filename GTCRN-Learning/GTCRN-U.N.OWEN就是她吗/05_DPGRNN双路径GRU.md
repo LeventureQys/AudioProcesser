@@ -1,4 +1,4 @@
-# DPGRNN：双路径GRU的设计
+# 05. DPGRNN：双路径 GRU 的设计
 
 GTCRN的核心是DPGRNN（Dual-Path Grouped RNN），不是简单的一个GRU，而是两条路径分别处理频率和时间维度。
 
