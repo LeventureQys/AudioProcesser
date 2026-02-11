@@ -4,7 +4,10 @@
       "Bash(dir:*)",
       "Bash(find:*)",
       "Bash(ren:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
