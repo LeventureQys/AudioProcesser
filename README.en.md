@@ -6,78 +6,66 @@ This project contains code and practices from my learning journey in audio proce
 
 ## Project Structure
 
-### Main Modules
+```
+AudioProcesser/
+├── DSP_Filter_Design/          # DSP filter design implementations
+│   ├── FIRFIlter/              # FIR filter implementation and testing
+│   ├── FIRSimulation/          # Python-based filter simulation
+│   └── IIRFilter/              # IIR filter design and calculation core
+├── FrameworkLearning/          # Framework learning
+│   ├── GTCRN-Learning/         # GTCRN lightweight noise reduction tutorial
+│   └── RVC-Learning/           # RVC voice conversion learning
+├── Document/                   # Learning materials and references
+│   ├── DASP/                   # Audio signal processing fundamentals
+│   ├── FilterDesignInfo/       # Filter design references
+│   ├── Book/                   # Reference books
+│   ├── Paper/                  # Research papers
+│   ├── RVC/                    # RVC-related materials
+│   ├── Voice Signals Process/  # Voice signal processing
+│   └── ...                     # Other theoretical documents
+├── Test_Audio/                 # Test audio files
+│   ├── AudioSample-16000hz/    # 16kHz sample rate audio
+│   ├── AudioSample-48000hz/    # 48kHz sample rate audio
+│   └── ...                     # Other audio resources and utility scripts
+├── Archived_Workshop/          # Archived projects (early practice code)
+│   ├── DeepFilterDemo/         # C++ implementation of DeepFilter noise reduction
+│   ├── gtcrn_onnx_runtime/     # ONNX inference version of GTCRN noise reduction
+│   ├── Noise_Reduction_Benchmark/ # Noise reduction algorithm evaluation framework
+│   ├── NoisyPrint/             # Spectral subtraction-based noise cancellation
+│   └── RealTime-Mic-Algorithm-Testing-Platform/ # Qt real-time algorithm testing platform
+├── LICENSE
+├── README.md
+└── README.en.md
+```
 
-**1. Digital Signal Processing (DASP)**
-- `DASP/` - Basic audio signal processing algorithms (FIR/IIR filters, resampling, etc.)
-- `FIRFilter/` - FIR filter implementation and testing
-- `IIRFilter/` - IIR filter design and calculation core
+### Module Descriptions
+
+**1. DSP Filter Design (`DSP_Filter_Design/`)**
+- `FIRFIlter/` - FIR filter implementation and testing
 - `FIRSimulation/` - Python-based filter simulation
+- `IIRFilter/` - IIR filter design and calculation core
 
-**2. Audio Processing Basics**
-- `Audio/` - Various test audio files and sample rate conversion tools
-- `Voice Process/` - Voice signal analysis, like pitch detection
-- `NoisyPrint/` - Spectral subtraction-based noise cancellation
-- `hubert_onnx/` - Hubert speech feature extraction model
+**2. Framework Learning (`FrameworkLearning/`)**
+- `GTCRN-Learning/` - GTCRN lightweight noise reduction network architecture, optimization, and practice
+- `RVC-Learning/` - RVC voice conversion framework learning
 
-**3. Machine Learning Noise Reduction**
+**3. Learning Materials (`Document/`)**
+- Signal processing fundamentals (DASP, filter design principles, etc.)
+- Research papers and reference books
+- Specialized topics on RVC, voice signal processing, etc.
+
+**4. Test Audio (`Test_Audio/`)**
+- Audio samples at various sample rates (16kHz, 48kHz)
+- Sample rate conversion utility scripts
+
+**5. Archived Projects (`Archived_Workshop/`)**
+
+Early practice code, archived for reference:
 - `DeepFilterDemo/` - C++ implementation of DeepFilter noise reduction
-- `gtcrn_onnx_runtime/` - ONNX version of GTCRN lightweight noise reduction
-- `GTCRN-Learning/` - GTCRN algorithm learning tutorial
-- `Webrtc_NoisyReduce/` - WebRTC official noise reduction algorithm
-
-**4. Real-time Audio Processing**
-- `RealTime-Mic-Algorithm-Testing-Platform/` - Qt-based real-time algorithm testing platform
-- `WASAPI/` - Windows audio driver development practices
-
-**5. Voice Conversion and Recognition**
-- `RVC/` - VITS-based voice conversion tool
-- `PaddleSpeech/` - PaddleSpeech related code
-
-**6. Evaluation Tools**
-- `Noise_Reduction_Benchmark/` - Noise reduction algorithm performance evaluation framework
-
-**7. Learning Materials**
-- `Document/` - Signal processing theory, filter design, papers, and other references
-
-## Quick Start
-
-### Requirements
-- Python 3.8+
-- C++ environment (CMake 3.10+, optional Qt)
-
-### Install Dependencies
-```bash
-pip install numpy scipy matplotlib torch onnx onnxruntime librosa soundfile
-```
-
-### Usage Examples
-
-**Run spectral subtraction noise reduction:**
-```bash
-cd NoisyPrint
-python Process.py
-```
-
-**Test FIR filter:**
-```bash
-cd FIRFilter
-python Main.py
-```
-
-**Voice conversion example:**
-```bash
-cd RVC
-python firstProject.py
-```
-
-**Build C++ project:**
-```bash
-cd DeepFilterDemo/Demo
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
+- `gtcrn_onnx_runtime/` - ONNX inference implementation of GTCRN noise reduction
+- `Noise_Reduction_Benchmark/` - Objective evaluation framework for noise reduction algorithms
+- `NoisyPrint/` - Spectral subtraction-based noise cancellation
+- `RealTime-Mic-Algorithm-Testing-Platform/` - Qt-based real-time audio algorithm testing platform
 
 ## Algorithm Comparison
 
@@ -87,32 +75,23 @@ cmake --build .
 | Spectral Subtraction | NoisyPrint | Low | Low | Medium | Stationary Noise |
 | Machine Learning | DeepFilter | Medium | Medium | Good | Complex Environment |
 | Lightweight DL | GTCRN | Low | Medium | Excellent | Real-time Communication |
-| Industrial Grade | WebRTC | Low | Low | Good | Real-time Communication |
 
 ## Project Features
 
-1. **Complete Algorithm Evolution** - Implementations from traditional methods to deep learning
-2. **Real-time Processing Support** - Low-latency real-time audio processing capabilities
-3. **Industrial-grade Implementations** - Includes mature solutions like WebRTC
-4. **Rich Learning Resources** - Systematic algorithm tutorials and theoretical materials
+1. **Complete Algorithm Evolution** - Implementations from traditional filters to deep learning noise reduction
+2. **Rich Learning Resources** - Systematic algorithm tutorials and theoretical materials
+3. **Engineering Practice Reference** - Archived projects contain runnable engineering code
 
-## Project Progress
+## Learning Suggestions
 
-**Implemented:**
-- Traditional filter design (FIR/IIR)
-- Spectral subtraction noise cancellation
-- Machine learning noise reduction (DeepFilter, GTCRN, etc.)
-- WebRTC noise reduction algorithm
-- RVC voice conversion
-- Real-time audio testing platform
-
-**Planned:**
-- More deep learning models
-- Cloud inference support
-- Mobile optimization
-- Automated evaluation system
+1. **Beginner** - Start with signal processing fundamentals in `Document/`
+2. **Practice** - Try filter design in `DSP_Filter_Design/`
+3. **Advanced** - Learn deep learning noise reduction in `FrameworkLearning/GTCRN-Learning/`
+4. **Reference** - Review engineering implementations in `Archived_Workshop/`
 
 ## Changelog
+
+**February 2026** - Project structure reorganization, archived early projects, streamlined directories
 
 **January 2026** - Project documentation cleanup and restructuring
 
@@ -132,27 +111,11 @@ cmake --build .
 
 **June 2024** - Project initialization
 
-## Contribution Guidelines
-
-Welcome suggestions and code improvements! If you have issues, please report via GitHub Issue.
-
-Development notes:
-- Python code follows PEP8 standards
-- C++ code uses Google C++ style
-- Please add documentation for new features
-
-## Learning Suggestions
-
-1. **Beginner** - Start with signal processing basics in `Document/`
-2. **Practice** - Try filters in `DASP/` and `FIRFilter/`
-3. **Advanced** - Learn deep learning noise reduction in `GTCRN-Learning/`
-4. **Engineering** - Test algorithms with `RealTime-Mic-Algorithm-Testing-Platform/`
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
-*Last Updated: January 26, 2026*  
+*Last Updated: February 24, 2026*
 *Project Status: Active Development*

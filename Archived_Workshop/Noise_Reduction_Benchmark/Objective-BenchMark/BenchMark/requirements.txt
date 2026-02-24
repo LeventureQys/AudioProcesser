@@ -1,0 +1,6 @@
+pandas
+seaborn
+onnxruntime
+librosa
+fairseq
+tensorboardX
