@@ -1,144 +1,136 @@
-# 05. DPGRNN：双路径 GRU 的设计
+# 05. DPGRNN：为什么需要双路径 RNN
 
-GTCRN的核心是DPGRNN（Dual-Path Grouped RNN），不是简单的一个GRU，而是两条路径分别处理频率和时间维度。
+DPGRNN（Dual-Path Grouped RNN）是 GTCRN 的瓶颈层，位于编码器和解码器之间。它的任务是建模全局的时频依赖——这是卷积层做不到的事情。
 
-## 为什么要双路径
+---
 
-语音频谱是2D的：频率轴和时间轴。直接用2D卷积或者把特征拉平喂给RNN都有问题：
+## 一、卷积层的局限
 
-- 2D卷积：感受野有限，长程依赖建模弱
-- 拉平喂RNN：维度太高，计算量爆炸
+GTConvBlock 通过膨胀卷积金字塔把感受野扩大到约 430ms，但这仍然是**局部**的。卷积层无法建模：
 
-双路径的思路是把2D问题拆成两个1D问题：
-1. **Intra-path**：沿频率轴跑，建模频率维度的依赖（比如谐波结构）
-2. **Inter-path**：沿时间轴跑，建模时间维度的依赖（比如噪声统计变化）
+- **长程时序依赖**：噪声的统计特性可能在几秒内缓慢变化，需要看很长的历史
+- **全局频率依赖**：语音的基频和所有泛音之间的谐波关系，跨越整个频率轴
 
-## 具体结构
+RNN 能看到任意长度的历史，天然适合建模这种全局依赖。
 
-```python
-class DPGRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_groups=2):
-        super().__init__()
-        # Intra-path: 沿频率轴，双向
-        self.intra_gru = nn.GRU(
-            input_size // num_groups,
-            hidden_size // num_groups,
-            bidirectional=True,
-            batch_first=True
-        )
-        self.intra_fc = nn.Linear(hidden_size, input_size)
+---
 
-        # Inter-path: 沿时间轴
-        # V1/V2: bidirectional=True
-        # V3: bidirectional=False (因果)
-        self.inter_gru = nn.GRU(
-            input_size,
-            hidden_size,
-            bidirectional=True,  # V3改成False
-            batch_first=True
-        )
-        self.inter_fc = nn.Linear(hidden_size * 2, input_size)  # V3是hidden_size
+## 二、为什么不直接用一个 RNN
 
-    def forward(self, x):
-        # x: [B, T, F, C]
-        B, T, F, C = x.shape
+编码器输出的特征是 [B, 32, T, 55]——32 个通道，T 帧，55 个频带。这是一个二维的时频结构。
 
-        # Intra-path: 每个时间帧独立处理频率轴
-        x_intra = x.reshape(B * T, F, C)
-        intra_out, _ = self.intra_gru(x_intra)
-        intra_out = self.intra_fc(intra_out)
-        intra_out = intra_out.reshape(B, T, F, C)
-        x = x + intra_out  # 残差
+**方案一：把频率轴展平，只用时间方向 RNN**
+- 输入维度：32×55 = 1760
+- RNN 参数量正比于隐藏维度的平方，1760 维的 RNN 参数量爆炸
+- 而且无法显式建模频率轴的结构（谐波关系）
 
-        # Inter-path: 每个频率bin独立处理时间轴
-        x_inter = x.permute(0, 2, 1, 3).reshape(B * F, T, C)
-        inter_out, _ = self.inter_gru(x_inter)
-        inter_out = self.inter_fc(inter_out)
-        inter_out = inter_out.reshape(B, F, T, C).permute(0, 2, 1, 3)
-        x = x + inter_out  # 残差
+**方案二：把时间轴展平，只用频率方向 RNN**
+- 无法利用时序上下文，无法建模噪声的时间统计特性
 
-        return x
+**方案三：双路径**
+- 把二维问题拆成两个一维问题
+- 每个 RNN 只处理一个维度，维度低，参数量可控
+- 两个维度的依赖都能建模
+
+---
+
+## 三、双路径设计
+
+```
+输入 [B, 32, T, 55]
+    │
+    ▼ Intra（频率方向）
+    │ reshape → [B×T, 55, 32]   ← 每帧独立，把 55 个频带当作序列
+    │ Linear → BiGRU → Linear
+    │ reshape → [B, 32, T, 55]
+    │ + 残差 + LayerNorm
+    │
+    ▼ Inter（时间方向）
+    │ reshape → [B×55, T, 32]   ← 每个频带独立，把 T 帧当作序列
+    │ Linear → GRU → Linear
+    │ reshape → [B, 32, T, 55]
+    │ + 残差 + LayerNorm
+    │
+输出 [B, 32, T, 55]
 ```
 
-## Intra-path：频率轴建模
+**Intra 和 Inter 的分工**：
+- Intra：每帧内部，建模 55 个频带之间的关系（谐波结构、共振峰分布）
+- Inter：每个频带，建模 T 帧之间的时序依赖（噪声统计、语音连续性）
 
-Intra-path沿频率轴跑，用双向GRU。为什么是双向？因为频率轴没有因果性——低频和高频的关系是对称的。
+---
 
-它主要捕获：
-- 谐波结构：基频和各次谐波之间的关系
-- 共振峰：相邻频带的能量分布
-- 频谱包络：整体的频谱形状
+## 四、为什么 Intra 双向、Inter 单向
 
-每个时间帧独立处理，所以可以并行。
+**Intra（频率轴）用双向 GRU**：
+- 频率轴没有因果约束，低频和高频互相都有帮助
+- 双向 GRU 让每个频带都能看到所有其他频带的信息
+- 例如：知道基频在 200Hz，就能预测 400Hz、600Hz 处应该有泛音
 
-## Inter-path：时间轴建模
+**Inter（时间轴）用单向 GRU**：
+- 时间轴有因果约束，实时系统不能看未来的帧
+- 单向 GRU 只看过去，保证了流式推理的可行性
+- V1/V2（离线）理论上可以用双向，但为了和 V3 保持一致，也用单向
 
-Inter-path沿时间轴跑，这里有因果性的问题：
+---
 
-- **V1/V2（离线）**：双向GRU，能看到整段音频
-- **V3（实时）**：单向GRU，只能看历史帧
+## 五、为什么在 GRU 前后加 Linear
 
-它主要捕获：
-- 噪声统计的慢变化
-- 语音的连续性
-- 瞬态事件的上下文
+每个 GRU 前后各有一个线性投影层：
 
-每个频率bin独立处理，也可以并行。
-
-## 为什么用两个DPGRNN
-
-GTCRN串联了两个DPGRNN模块。一个不够吗？
-
-实验发现一个DPGRNN的建模能力有限，特别是对复杂噪声场景。两个串联后：
-- 第一个DPGRNN做初步的时频建模
-- 第二个DPGRNN在此基础上进一步精细化
-
-类似于堆叠多层LSTM的效果，但计算效率更高。
-
-## 分组策略
-
-DPGRNN里用了分组（num_groups=2），把通道分成两组独立处理。好处：
-- 参数量减少一半
-- 不同组可以学习不同的模式
-- 类似于多头注意力的思想
-
-## V3的因果化
-
-V3要实时跑，Inter-path必须改成单向：
-
-```python
-# V2
-self.inter_gru = nn.GRU(..., bidirectional=True)
-self.inter_fc = nn.Linear(hidden_size * 2, input_size)
-
-# V3
-self.inter_gru = nn.GRU(..., bidirectional=False)
-self.inter_fc = nn.Linear(hidden_size, input_size)
+```
+输入 [B×T, 55, 32]
+    ↓ Linear(32 → 32)   ← 投影到 GRU 输入维度
+    ↓ BiGRU(32, 32)
+    ↓ Linear(64 → 32)   ← 投影回原始维度（双向输出是 64）
+输出 [B×T, 55, 32]
 ```
 
-Intra-path不用改，因为频率轴没有因果性。
+**为什么需要前置 Linear**：可以在不改变 GRU 结构的情况下调整输入维度，也起到特征变换的作用，让 GRU 接收到更好的输入表示。
 
-单向GRU的建模能力比双向弱，所以V3把hidden_size从48加到64来补偿，参数量从139K涨到145K。
+**为什么需要后置 Linear**：双向 GRU 的输出维度是隐藏维度的 2 倍（前向+后向拼接），需要投影回原始维度才能做残差连接。
 
-## 流式推理的状态管理
+---
 
-V3做流式推理时，Inter-path的GRU需要保持hidden state：
+## 六、为什么用残差连接和 LayerNorm
 
-```python
-class StreamingDPGRNN:
-    def __init__(self):
-        self.inter_hidden = None  # [num_layers, B*F, hidden]
+**残差连接**：DPGRNN 的任务是"调整"特征，而不是"重新生成"。残差让网络只学习"需要改变什么"，降低学习难度，也改善梯度流动。
 
-    def process_frame(self, x):
-        # x: [B, 1, F, C] 单帧
+**LayerNorm**：RNN 的输出分布可能不稳定（不同帧、不同频带的激活值范围差异大）。LayerNorm 对每个样本独立归一化，稳定训练，也让后续层更容易处理。
 
-        # Intra-path: 无状态，直接算
-        intra_out = self.intra_forward(x)
+---
 
-        # Inter-path: 需要维护状态
-        inter_out, self.inter_hidden = self.inter_forward(x, self.inter_hidden)
+## 七、为什么堆叠两个 DPGRNN
 
-        return intra_out + inter_out
+一个 DPGRNN 只做了一轮时频交互：先建模频率依赖，再建模时间依赖。但这两个维度的信息是相互影响的——时间上下文会影响对频率结构的判断，频率结构也会影响对时序模式的理解。
+
+两个 DPGRNN 串联：
+- 第一个：建立初步的时频理解
+- 第二个：在第一个的基础上进一步细化，让时频信息充分交互
+
+类似于 Transformer 堆叠多层的思路，但用 RNN 代替注意力机制，计算量更低。
+
+---
+
+## 八、低秩投影：进一步压缩参数
+
+RNN 的参数量正比于隐藏维度的平方。GTCRN 用低秩投影压缩 GRU 的参数：
+
+```
+原版：GRU(32, 32)          参数 ∝ 32² = 1024
+低秩：Linear(32→24) → GRU(24,24) → Linear(24→32)
+                           参数 ∝ 24² + 2×(32×24) = 576 + 1536 ≈ 0.56×原版
 ```
 
-Intra-path不需要状态，因为每帧独立处理频率轴。
+**为什么有效**：GRU 的隐藏状态通常存在冗余，低秩投影强迫网络用更紧凑的表示，同时减少参数量。这是矩阵分解思想在 RNN 上的应用。
+
+---
+
+## 九、流式推理的状态管理
+
+V3 做流式推理时，Inter GRU 需要维护隐藏状态：
+
+- **Intra GRU**：每帧独立处理频率轴，无需跨帧状态
+- **Inter GRU**：沿时间轴处理，需要保存 GRU 的 hidden state，逐帧更新
+
+两个 DPGRNN 各有一个 Inter GRU，共需维护 2 组 hidden state。这是 V3 流式推理状态的主要来源之一。

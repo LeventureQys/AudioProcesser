@@ -1,168 +1,141 @@
-# 04. GTConv：门控时序卷积的设计
+# 04. GTConvBlock：门控时序卷积的设计
 
-GTCRN的编码器和解码器各有6层GTConvLite，这是整个网络的特征提取骨干。
+GTConvBlock 是 GTCRN 编码器和解码器的核心模块，各堆叠 6 层。它的设计目标是：在极低参数量下，同时捕捉局部时频模式、扩大感受野、并动态适应不同帧的重要性。
 
-## GTConvLite的结构
+---
 
-每层GTConvLite包含四个部分：
+## 一、整体结构
 
-```python
-class GTConvLite(nn.Module):
-    def __init__(self, channels, dilation):
-        super().__init__()
-        # 1. 深度可分离卷积
-        self.depthwise = nn.Conv2d(channels, channels, kernel_size=3,
-                                   padding=dilation, dilation=dilation,
-                                   groups=channels)
-        self.pointwise = nn.Conv2d(channels, channels, kernel_size=1)
-
-        # 2. 时间注意力 (TRA)
-        self.tra = TemporalRecurrentAttention(channels)
-
-        # 3. SE通道注意力
-        self.se = SEBlock(channels)
-
-    def forward(self, x):
-        # 深度可分离卷积
-        out = self.depthwise(x)
-        out = self.pointwise(out)
-
-        # 时间注意力
-        out = self.tra(out)
-
-        # 通道注意力
-        out = self.se(out)
-
-        # 残差连接
-        return out + x
+```
+输入 [B, 32, T, F]
+    │
+    ├──────────────────────────────┐ 残差
+    ▼                              │
+深度卷积 (k=3×3, dilation=d)       │  ← 空间特征提取
+    ↓                              │
+逐点卷积 (1×1)                     │  ← 通道混合
+    ↓                              │
+BN → PReLU                        │
+    ↓                              │
+TRALite（时间门控）                 │  ← 哪些帧重要
+    ↓                              │
+SEBlock（通道门控）                 │  ← 哪些特征重要
+    ↓                              │
+    + ←────────────────────────────┘
+    ↓
+输出 [B, 32, T, F]
 ```
 
-## 深度可分离卷积
+每个模块都有明确的分工，没有冗余。
 
-标准卷积的参数量是 $C_{in} \times C_{out} \times K^2$。深度可分离卷积把它拆成两步：
+---
 
-1. **Depthwise**：每个通道独立卷积，参数量 $C \times K^2$
-2. **Pointwise**：1×1卷积混合通道，参数量 $C \times C$
+## 二、膨胀卷积金字塔：为什么是 [1, 2, 4, 8, 4, 2]
 
-总参数量从 $C^2 \times K^2$ 降到 $C \times (K^2 + C)$，对于C=64、K=3，减少了约8倍。
+6 层 GTConvBlock 的膨胀率不是固定的，而是先扩大后收缩。
 
-## 时间注意力（TRA）
+**为什么需要膨胀卷积**：普通 3×3 卷积的感受野只有 3 帧，无法捕捉语音的长程时序模式（噪声统计、语音连续性）。膨胀卷积在不增加参数的情况下扩大感受野：
 
-TRA是GTCRN的特色模块，用循环的方式计算时间维度的注意力：
-
-```python
-class TemporalRecurrentAttention(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        self.conv = nn.Conv1d(channels, channels, kernel_size=5, padding=2)
-        # V3: padding=0, 手动左填充4
-
-    def forward(self, x):
-        # x: [B, C, T, F]
-        B, C, T, F = x.shape
-
-        # 沿时间轴计算注意力
-        x_t = x.permute(0, 3, 1, 2).reshape(B * F, C, T)
-        attn = torch.sigmoid(self.conv(x_t))
-        out = x_t * attn
-        out = out.reshape(B, F, C, T).permute(0, 2, 3, 1)
-
-        return out
+```
+dilation=1:  感受野 3 帧
+dilation=2:  感受野 5 帧
+dilation=4:  感受野 9 帧
+dilation=8:  感受野 17 帧
 ```
 
-V3的因果版本把padding从对称改成只在左边填充：
-```python
-# V2: 对称padding
-self.conv = nn.Conv1d(ch, ch, kernel_size=5, padding=2)
+**为什么先扩大**：感受野指数增长，用 4 层就能覆盖 17 帧（约 170ms），足以捕捉大多数语音模式。
 
-# V3: 因果padding
-self.conv = nn.Conv1d(ch, ch, kernel_size=5, padding=0)
-x = F.pad(x, (4, 0))  # 只填充左边
+**为什么后收缩**：大膨胀率会产生"网格效应"——卷积核只采样固定间隔的位置，跳过中间的帧。收缩阶段（dilation=4, 2）用小膨胀率填补这些被跳过的位置，让特征更连续、不遗漏细节。
+
+**为什么对称**：扩张阶段建立全局视野，收缩阶段细化局部细节，两个阶段互补。整体感受野：
+
+```
+累积感受野 = 1 + 2×(1+2+4+8+4+2) = 43 帧 ≈ 430ms
 ```
 
-## SE通道注意力
+430ms 足以覆盖大多数语音音节的时长。
 
-Squeeze-and-Excitation模块，让网络学习通道间的重要性：
+---
 
-```python
-class SEBlock(nn.Module):
-    def __init__(self, channels, reduction=4):
-        super().__init__()
-        self.fc1 = nn.Linear(channels, channels // reduction)
-        self.fc2 = nn.Linear(channels // reduction, channels)
+## 三、TRALite：为什么需要时间门控
 
-    def forward(self, x):
-        # x: [B, C, T, F]
-        # 全局平均池化
-        s = x.mean(dim=(2, 3))  # [B, C]
+卷积对每一帧的处理方式是静态的，但语音信号是动态的：
+- 语音帧和静音帧应该用不同的处理强度
+- 瞬态噪声帧（键盘敲击）和稳态噪声帧应该区别对待
 
-        # 两层FC学习通道权重
-        s = F.relu(self.fc1(s))
-        s = torch.sigmoid(self.fc2(s))
+**TRALite 的设计**：计算每帧的能量，用时序卷积预测一个门控系数，对特征做逐帧加权：
 
-        # 通道加权
-        return x * s.unsqueeze(-1).unsqueeze(-1)
+```
+输入 [B, C, T, F]
+    ↓ 沿频率轴求均值
+能量 [B, C, T]        ← 每帧每通道的能量
+    ↓ 深度卷积 (k=5, 时间轴)
+    ↓ 逐点卷积
+    ↓ Sigmoid
+门控 [B, C, T, 1]     ← 每帧的重要性系数
+    ↓ 乘回输入
+输出 [B, C, T, F]
 ```
 
-## Dilation Rate的设计
+**为什么用能量而不是直接用特征**：能量是帧重要性最直接的指标，计算简单，物理意义明确。
 
-6层GTConv用了不同的dilation rate：[1, 2, 4, 8, 4, 2]
+**为什么原版用 GRU，V1 改成卷积（TRALite）**：GRU 有隐藏状态，流式推理时需要维护状态，部署复杂，也不好量化。卷积版本无状态，可以直接量化，且效果差距不大。
 
-为什么是这个模式？
-- 前4层dilation递增：感受野指数扩大，从局部到全局
-- 后2层dilation递减：回到局部细节，帮助重建
+**V3 的因果化**：非因果版本用对称 padding（左右各 2 帧），因果版本只在左边 pad 4 帧，右边不 pad。这样每帧只能看到过去的帧，满足实时推理的因果约束。
 
-这种"先扩后缩"的设计在语音处理里很常见，类似于WaveNet的设计。
+---
 
-感受野计算：
+## 四、SEBlock：为什么需要通道门控
+
+深度可分离卷积把空间特征提取和通道混合分开了，但通道混合（逐点卷积）是静态的——对所有帧用同样的通道权重。
+
+**SEBlock 的设计**：全局平均池化得到每个通道的全局统计，再用两层全连接预测每个通道的重要性：
+
 ```
-dilation=[1,2,4,8,4,2], kernel=3
-RF = 1 + sum((k-1)*d) = 1 + 2*(1+2+4+8+4+2) = 43
-```
-
-43帧约270ms，足够覆盖大部分语音模式。
-
-## 因果卷积的实现
-
-V3要实时跑，所有卷积都要改成因果的：
-
-```python
-# V2: 对称padding
-pad = dilation * (kernel - 1) // 2
-self.conv = nn.Conv2d(..., padding=(pad, pad))
-
-# V3: 只在左边和上边填充
-pad = dilation * (kernel - 1)
-self.conv = nn.Conv2d(..., padding=0)
-# forward时手动填充
-x = F.pad(x, (0, 0, pad, 0))  # 只填充时间维度的左边
+输入 [B, C, T, F]
+    ↓ 全局平均池化（时间+频率轴）
+[B, C]                ← 每个通道的全局统计
+    ↓ FC(C → C/4) → ReLU
+    ↓ FC(C/4 → C) → Sigmoid
+权重 [B, C]           ← 每个通道的重要性
+    ↓ 乘回输入
+输出 [B, C, T, F]
 ```
 
-## 流式推理的状态管理
+**为什么需要 SEBlock**：不同通道学到了不同的特征（有的通道对低频敏感，有的对高频敏感，有的对瞬态敏感）。SEBlock 让网络动态地调整各通道的权重，突出当前输入最相关的特征。
 
-V3做流式推理时，每层GTConv都需要缓存历史帧：
+**TRALite vs SEBlock 的分工**：
+- TRALite：时间维度的门控（哪些帧重要）
+- SEBlock：通道维度的门控（哪些特征重要）
 
-```python
-class StreamingGTConv:
-    def __init__(self, num_layers=6, dilations=[1,2,4,8,4,2]):
-        # 每层需要缓存 dilation*(kernel-1) 帧
-        self.buffers = [
-            torch.zeros(B, C, d * 2, F)  # kernel=3, 需要2*d帧
-            for d in dilations
-        ]
+两者互补，共同提升特征的选择性。
 
-    def process_frame(self, x, layer_idx):
-        # 拼接历史帧
-        buf = self.buffers[layer_idx]
-        x_with_history = torch.cat([buf, x], dim=2)
+---
 
-        # 卷积
-        out = self.convs[layer_idx](x_with_history)
+## 五、残差连接：为什么必须有
 
-        # 更新缓存
-        self.buffers[layer_idx] = x_with_history[:, :, 1:, :]
+GTConvBlock 的输出加回输入（残差连接）。
 
-        return out
+**原因**：GTConvBlock 的任务是"调整"特征，而不是"重新生成"特征。残差连接让网络只需要学习"需要改变什么"，而不是从零开始生成新特征。这大大降低了学习难度，也让梯度更容易反向传播——6 层堆叠的深度网络，没有残差连接很难训练。
+
+---
+
+## 六、V3 的因果化
+
+V3 要支持实时推理，所有时间轴上的卷积都需要改成因果的：
+
+```
+非因果（对称 padding，k=3, d=2）：
+  t-4  t-3  t-2  t-1   t   t+1  t+2
+            ●         ○         ●     ← 看了未来的 t+2，不行
+
+因果（单侧 padding，k=3, d=2）：
+  t-4  t-3  t-2  t-1   t   t+1  t+2
+   ●         ●         ○         ← 只看过去，可以
 ```
 
-12层GTConv（编码器6层+解码器6层），每层缓存大小不同，总共需要维护不少状态。
+实现方式：把对称 padding 改为只在时间轴左边 pad $(k-1) \times d$ 帧，右边不 pad。
+
+**为什么 V3 把卷积核从 3×3 改为 5×5**：因果化后每个卷积核只能看左边，感受野减半。用更大的卷积核（5×5）补偿损失的感受野，代价是参数量略增（约 6K）。
+
+**流式推理的状态**：因果卷积在流式推理时需要缓存历史帧。每层 GTConvBlock 需要缓存 $(k-1) \times d$ 帧，12 层（编码器 6 + 解码器 6）总共需要维护一定量的历史状态。
