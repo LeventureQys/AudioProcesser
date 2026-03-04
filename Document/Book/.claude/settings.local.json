@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findstr:*)",
+      "Bash(pip install:*)",
+      "Bash(python -c:*)",
+      "Bash(tesseract:*)",
+      "Bash(mkdir:*)"
+    ]
+  }
+}
