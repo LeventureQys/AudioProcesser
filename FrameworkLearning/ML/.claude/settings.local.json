@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netsh winhttp show proxy:*)",
+      "Bash(python -c:*)",
+      "Bash(python download.py:*)"
+    ]
+  }
+}
