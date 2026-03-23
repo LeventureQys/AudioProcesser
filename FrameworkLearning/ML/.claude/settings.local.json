@@ -3,7 +3,9 @@
     "allow": [
       "Bash(netsh winhttp show proxy:*)",
       "Bash(python -c:*)",
-      "Bash(python download.py:*)"
+      "Bash(python download.py:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
