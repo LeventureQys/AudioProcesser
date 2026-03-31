@@ -1,3 +1,9 @@
 [submodule "Noise_Reduction_Benchmark/Objective-BenchMark/BenchMark"]
 	path = Noise_Reduction_Benchmark/Objective-BenchMark/BenchMark
 	url = https://github.com/LeventureQys/MOS.git
+[submodule "third_party/DeepFilterNet"]
+	path = third_party/DeepFilterNet
+	url = https://github.com/Rikorose/DeepFilterNet
+[submodule "third_party/gtcrn"]
+	path = third_party/gtcrn
+	url = https://github.com/Xiaobin-Rong/gtcrn
