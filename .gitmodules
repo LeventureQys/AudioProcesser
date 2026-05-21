@@ -7,3 +7,6 @@
 [submodule "third_party/gtcrn"]
 	path = third_party/gtcrn
 	url = https://github.com/Xiaobin-Rong/gtcrn
+[submodule "Archived_Workshop/MeanVC"]
+	path = Archived_Workshop/MeanVC
+	url = https://github.com/LeventureQys/MeanVC.git
