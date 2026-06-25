@@ -1,0 +1,27 @@
+﻿Signal,Method,MSE,MAE,Corr,Lag
+A,Kalman (Standard),2062.7,35.2,0.9601,0
+A,Kalman (Adaptive),5238.5,55.5,0.9069,0
+A,Holt-Winters,409.4,15.2,0.9926,0
+A,Gaussian (sigma=3),906.9,22.4,0.9823,0
+A,Gaussian (sigma=5),1474.2,28.6,0.9714,0
+A,Butterworth (fc=0.03),1770.0,31.5,0.9648,0
+A,Butterworth (fc=0.05),1098.8,24.9,0.9783,0
+A,Savitzky-Golay (w=11),563.6,17.5,0.9889,0
+A,Savitzky-Golay (w=21),1088.2,24.6,0.9784,0
+A,SMA (window=20),81384.4,101.0,0.2751,0
+A,SMA (window=60),246332.0,259.4,-0.1193,0
+A,EMA (span=12),2893.3,40.2,0.9460,0
+A,EMA (span=26),6609.8,63.5,0.8847,0
+B,Kalman (Standard),1123.6,24.4,0.9923,0
+B,Kalman (Adaptive),2758.8,37.2,0.9818,0
+B,Holt-Winters,235.9,10.6,0.9984,0
+B,Gaussian (sigma=3),575.6,17.1,0.9960,0
+B,Gaussian (sigma=5),872.3,21.4,0.9940,0
+B,Butterworth (fc=0.03),1002.1,23.2,0.9931,0
+B,Butterworth (fc=0.05),688.7,19.1,0.9952,0
+B,Savitzky-Golay (w=11),416.4,14.4,0.9971,0
+B,Savitzky-Golay (w=21),708.3,19.8,0.9951,0
+B,SMA (window=20),90026.9,97.1,0.6657,6
+B,SMA (window=60),258079.5,246.4,0.4551,18
+B,EMA (span=12),1710.1,31.6,0.9898,0
+B,EMA (span=26),4255.0,51.5,0.9787,0
