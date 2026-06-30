@@ -8,16 +8,16 @@
 
 ## 目录
 
-- [前言：这篇文章写给谁看](#前言)
-- [第一章 设计思路与背景：作者到底要解决什么问题？](#第一章-设计思路与背景作者到底要解决什么问题)
-- [第二章 整体架构：一张图看懂 GTCRN 是怎么搭起来的](#第二章-整体架构一张图看懂-gtcrn-是怎么搭起来的)
-- [第三章 输入处理与 ERB：怎么把 257 个频点压成 129 个还不丢信息？](#第三章-输入处理与-erb怎么把-257-个频点压成-129-个还不丢信息)
-- [第四章 GT-Conv 详解：ShuffleNetV2 + 时间空洞，省到极致的卷积块](#第四章-gt-conv-详解shufflenetv2--时间空洞省到极致的卷积块)
-- [第五章 DPGRNN 详解：双路径 + 分组，RNN 的极致瘦身](#第五章-dpgrnn-详解双路径--分组rnn-的极致瘦身)
-- [第六章 SFE 与 TRA：两个"点睛"模块](#第六章-sfe-与-tra两个点睛模块)
-- [第七章 输出与损失函数：复数掩码 CRM 和"混合损失"的玄学](#第七章-输出与损失函数复数掩码-crm-和混合损失的玄学)
-- [第八章 流式推理：从离线训练到逐帧实时](#第八章-流式推理从离线训练到逐帧实时)
-- [第九章 设计哲学总结：从 GTCRN 学到的可迁移工程思维](#第九章-设计哲学总结从-gtcrn-学到的可迁移工程思维)
+- 前言：这篇文章写给谁看
+- 第一章 设计思路与背景：作者到底要解决什么问题？
+- 第二章 整体架构：一张图看懂 GTCRN 是怎么搭起来的
+- 第三章 输入处理与 ERB：怎么把 257 个频点压成 129 个还不丢信息？
+- 第四章 GT-Conv 详解：ShuffleNetV2 + 时间空洞，省到极致的卷积块
+- 第五章 DPGRNN 详解：双路径 + 分组，RNN 的极致瘦身
+- 第六章 SFE 与 TRA：两个"点睛"模块
+- 第七章 输出与损失函数：复数掩码 CRM 和"混合损失"的玄学
+- 第八章 流式推理：从离线训练到逐帧实时
+- 第九章 设计哲学总结：从 GTCRN 学到的可迁移工程思维
 
 ---
 
@@ -273,6 +273,10 @@ def forward(self, spec):
 
 ### 2.3 整体架构图：从代码反推出的全景
 
+![图 FIG-01：GTCRN 整体架构](figure/fig01_overall_architecture.png)
+
+下面用 ASCII 把这张图的数据流再描一遍，作为对照——画在文本里是为了方便你抄到笔记本里：
+
 ```
                        输入 STFT (B, F=257, T, 2)
                                 │
@@ -513,6 +517,8 @@ feat = torch.stack([spec_mag, spec_real, spec_imag], dim=1)  # (B,3,T,257)
 
 ### 3.3 核心来了：ERB 频带合并 (Band Merging)
 
+![图 FIG-02：ERB 频带压缩示意](figure/fig02_erb_compression.png)
+
 打开 [gtcrn.py:11](../../third_party/gtcrn/gtcrn.py#L11)，看 `ERB` 类。
 
 #### 心理声学常识：什么是 ERB？
@@ -725,6 +731,8 @@ SFE 后第 f 个频带的特征：[f-1的3个, f的3个, f+1的3个]  (9维)
 
 > GT-Conv 是 GTCRN 编码器/解码器的**主力计算单元**。理解它，就理解了 GTCRN 是怎么用极少的参数捕捉时频特征的。
 
+![图 FIG-03：GT-Conv 块完整结构](figure/fig03_gtconv_block.png)
+
 ### 4.1 先看代码：GT-Conv 长什么样
 
 打开 [gtcrn.py:107](../../third_party/gtcrn/gtcrn.py#L107)：
@@ -879,6 +887,8 @@ self.depth_conv = conv_module(hidden_channels, hidden_channels, kernel_size,
 
 ### 4.4 Dilated Convolution：用空洞扩大时间感受野
 
+![图 FIG-04：三层 Dilated Conv 的感受野累积（1/2/5）](figure/fig04_dilated_receptive_field.png)
+
 代码里有个有趣的细节：三层 GT-Conv 的 `dilation` 不同：
 
 ```python
@@ -925,6 +935,8 @@ dilation=5:             [w0 ____ w1 ____ w2]    感受野 = 11
 > **频率维要密，时间维要宽**——这是 SE 卷积设计的又一条不成文规则。
 
 ### 4.5 因果填充：保证流式部署
+
+![图 FIG-05：对称 padding vs 因果左侧 padding](figure/fig05_causal_padding.png)
 
 这一行非常关键：
 
@@ -1091,6 +1103,8 @@ GTCRN 的解码器是编码器的**镜像**：
 A 和 B 都跑！一个建模时间依赖，一个建模频谱结构。**这就是 Dual-Path RNN (DPRNN) 的核心思想。**
 
 ### 5.3 DPRNN 的工作流程
+
+![图 FIG-06：DPGRNN 双路径——Intra（沿 F 双向）+ Inter（沿 T 单向）](figure/fig06_dpgrnn_dual_path.png)
 
 DPRNN 原本是 Luo et al. (2020) 提出来做时域单声道语音分离的，DPCRN 把它搬到时频域。GTCRN 进一步在每个 RNN 上加 grouped 优化。
 
@@ -1402,6 +1416,8 @@ DPGRNN 这个模块完美演绎了一个轻量化网络设计的核心思想：
 
 ### 6.2 SFE 模块：用一行 `nn.Unfold` 改变特征布局
 
+![图 FIG-07：SFE 把邻近 3 个频带的特征堆到通道维](figure/fig07_sfe_operation.png)
+
 #### 看代码
 
 [gtcrn.py:64](../../third_party/gtcrn/gtcrn.py#L64)：
@@ -1518,6 +1534,8 @@ SFE 自己不带参数（Unfold 是纯 reshape），但它会让后续 1×1 卷�
 所以"廉价"不是"免费"——是相对于 3×3 卷积省了 3 倍计算（同时保留邻居信息）。
 
 ### 6.3 TRA 模块：时序注意力的轻量化实现
+
+![图 FIG-08：TRA 五步流程——能量聚合 → GRU → FC → Sigmoid → 广播相乘](figure/fig08_tra_module.png)
 
 TRA 是 GTCRN 真正的原创贡献。我们一步一步看。
 
@@ -2130,6 +2148,8 @@ def forward(self, spec, conv_cache, tra_cache, inter_cache):
 我们逐类看。
 
 ### 8.3 缓存 1：Dilated Convolution 的卷积缓存
+
+![图 FIG-09：流式推理时的 cache FIFO 更新机制](figure/fig09_stream_cache.png)
 
 #### 离线训练时怎么做？
 
@@ -2786,5 +2806,3 @@ GTCRN 不是一个"惊为天人"的网络。它没有任何颠覆性的发明—
 ---
 
 > **致谢**：感谢 GTCRN 作者 Xiaobin Rong 等人提供了如此清晰的论文和开源代码。本文的所有观点和分析仅代表本人理解，如有偏差以原论文为准。
->
-> **如果你觉得分章版更适合阅读，可以打开** [README.md](README.md) **看 9 章独立文件的索引。**
