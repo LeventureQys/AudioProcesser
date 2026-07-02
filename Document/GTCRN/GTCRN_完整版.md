@@ -2,7 +2,7 @@
 
 > 作者从零讲起：背景、骨架、模块、训练、部署、设计哲学，一篇看完。
 >
-> 配套源码：[third_party/gtcrn/](../../third_party/gtcrn/) ｜ 配套论文：[GTCRN ICASSP 2024](../Paper/GTCRN/GTCRN_A_Speech_Enhancement_Model_Requiring_Ultralow_Computational_Resources.pdf)
+> 配套材料：GTCRN 论文与公开实现都可以作为辅助阅读材料，但本文尽量按原理本身展开，不依赖具体工程代码跳转。
 
 ---
 
@@ -42,7 +42,7 @@
 **阅读建议**：
 
 - **顺序读**：每章都建立在前一章的基础上，跳读容易"知其然不知其所以然"。
-- **对照代码读**：所有代码引用都使用相对路径（如 [gtcrn.py:277](../../third_party/gtcrn/gtcrn.py#L277)），鼠标点击就能跳过去。
+- **对照原理读**：如果你手边恰好有实现，可以边看边对照；如果没有，也不影响理解本文。
 - **不要急于求成**：一章读完后，建议**自己复述一遍这个模块解决的是什么问题**，然后再进入下一章。
 
 ---
@@ -111,13 +111,13 @@
 
 #### 总结作者的"诊断"
 
-```
-现有方案 = 大模型压缩（卡在剪枝结构上） 
-        ∪ 高效结构（卡在 100K+ 级别）  
-        ∪ 小网络+DSP（除了 RNNoise 都太大；RNNoise 太弱）
+可以把作者的判断压缩成三句话：
 
-→ 空白市场：< 50K 参数 且 性能比 RNNoise 显著好
-```
+- 大模型压缩路线，最终还是容易卡在原始大结构上；
+- 纯高效结构路线，当时多数方案仍停留在 `100K+` 参数量级；
+- 小网络 + DSP 路线里，真正够小的只有 `RNNoise`，但效果又不够强。
+
+所以作者瞄准的空白点是：**`< 50K` 参数，同时效果显著优于 `RNNoise`。**
 
 这就是 GTCRN 的市场定位。
 
@@ -168,27 +168,9 @@
 
 我们把 GTCRN 的设计目标分解成几个层次的子问题，每一层对应后面一章：
 
-```
-                  ┌──────────────────────────────────────┐
-                  │  目标：23.7K 参数 + < 50M MACs/秒    │
-                  │       且性能 >> RNNoise             │
-                  └────────────┬─────────────────────────┘
-                               │
-       ┌───────────────────────┼─────────────────────────┐
-       ▼                       ▼                         ▼
-  ┌─────────┐            ┌──────────┐              ┌──────────┐
-  │ 输入太大│            │ 网络要小 │              │  性能不能塌  │
-  │  怎么办 │            │  怎么砍  │              │ 怎么再加点  │
-  └────┬────┘            └────┬─────┘              └─────┬────┘
-       │                      │                          │
-       ▼                      ▼                          ▼
-  ┌─────────┐         ┌──────────────┐           ┌─────────────┐
-  │   ERB   │         │ Grouped Conv │           │     SFE     │
-  │ BM/BS   │         │ Grouped RNN  │           │     TRA     │
-  │  (第3章) │         │   Dilated    │           │   (第6章)   │
-  └─────────┘         │   (第4/5章)   │           └─────────────┘
-                      └──────────────┘
-```
+![图 FIG-10：GTCRN 设计目标分解](figure/fig10_design_strategy.png)
+
+这张图把后面的章节关系串起来了：先解决**输入压缩**，再做**主干轻量化**，最后用少量模块把性能补回来。
 
 ### 1.6 一句话总结这一章
 
@@ -200,50 +182,20 @@
 
 ## 第二章 整体架构：一张图看懂 GTCRN 是怎么搭起来的
 
-> 在拆模块之前，我们先看全景。一个网络的全景图等价于它的 forward 函数——所以这一章我们就跟着代码走一遍。
+> 在拆模块之前，我们先看全景。一个网络的全景图，本质上就等价于它的一次完整前向计算过程。
 
 ### 2.1 先看入口：forward 在做什么
 
-打开 [gtcrn.py:292](../../third_party/gtcrn/gtcrn.py#L292)，整个 `GTCRN.forward` 只有 25 行：
+把整体计算过程抽象出来，其实可以压缩成下面这 8 个阶段：
 
-```python
-def forward(self, spec):
-    """
-    spec: (B, F, T, 2)
-    """
-    spec_ref = spec  # (B,F,T,2)
-
-    # ① 输入特征工程：从 STFT 复数谱构造三通道输入
-    spec_real = spec[..., 0].permute(0,2,1)
-    spec_imag = spec[..., 1].permute(0,2,1)
-    spec_mag  = torch.sqrt(spec_real**2 + spec_imag**2 + 1e-12)
-    feat = torch.stack([spec_mag, spec_real, spec_imag], dim=1)  # (B,3,T,257)
-
-    # ② 频域压缩：高频走 ERB，低频保留
-    feat = self.erb.bm(feat)  # (B,3,T,129)
-
-    # ③ 子带扩张：把相邻频带堆到通道维
-    feat = self.sfe(feat)     # (B,9,T,129)
-
-    # ④ 编码器：U-Net 下采样 + GT-Conv
-    feat, en_outs = self.encoder(feat)
-
-    # ⑤ 时频建模：两层 DPGRNN
-    feat = self.dpgrnn1(feat)  # (B,16,T,33)
-    feat = self.dpgrnn2(feat)  # (B,16,T,33)
-
-    # ⑥ 解码器：上采样回原始频率分辨率
-    m_feat = self.decoder(feat, en_outs)
-
-    # ⑦ ERB 反变换：恢复回 257 频点
-    m = self.erb.bs(m_feat)
-
-    # ⑧ 复数掩码相乘：得到增强谱
-    spec_enh = self.mask(m, spec_ref.permute(0,3,2,1))  # (B,2,T,F)
-    spec_enh = spec_enh.permute(0,3,2,1)  # (B,F,T,2)
-
-    return spec_enh
-```
+1. 输入是带噪复数谱；
+2. 先整理成幅度、实部、虚部三路输入特征；
+3. 高频通过 ERB 压缩，低频原样保留；
+4. 经过 SFE，把相邻频带的局部上下文打包到通道维；
+5. 编码器把频率维压低、通道维拉高；
+6. 两层 DPGRNN 在低维表示上补足全局时频建模；
+7. 解码器恢复频率分辨率；
+8. 最后输出复数掩码，乘回原谱，得到增强结果。
 
 这就是全部。25 行里包含了 8 个语义阶段，我们一阶段一阶段看。
 
@@ -275,69 +227,9 @@ def forward(self, spec):
 
 ![图 FIG-01：GTCRN 整体架构](figure/fig01_overall_architecture.png)
 
-下面用 ASCII 把这张图的数据流再描一遍，作为对照——画在文本里是为了方便你抄到笔记本里：
+下面补一张更细的数据流图，把各阶段的 shape 和 skip connection 也一起标出来：
 
-```
-                       输入 STFT (B, F=257, T, 2)
-                                │
-                ┌───────────────┼────────────────┐
-                │     特征工程：[mag, real, imag]
-                │       (B, 3, T, 257)
-                ▼
-        ┌───────────────┐
-        │   ERB BM      │  高频192点→64带，低频65点不动
-        │ (B, 3, T,129) │
-        └───────┬───────┘
-                │
-        ┌───────▼───────┐
-        │     SFE       │  邻近3频带堆到通道
-        │ (B, 9, T,129) │
-        └───────┬───────┘
-                │
-   ┏━━━━━━━━━━━━┷━━━━━━━━━━━━━━┓
-   ┃           Encoder            ┃
-   ┃                              ┃
-   ┃  Conv(1×5, /2) → (16,T, 65)  ┃─────┐ skip 1
-   ┃  Conv(1×5, /2, g=2)→(16,T,33)┃─────┤ skip 2
-   ┃  GT-Conv(d=1)   →(16,T, 33)  ┃─────┤ skip 3
-   ┃  GT-Conv(d=2)   →(16,T, 33)  ┃─────┤ skip 4
-   ┃  GT-Conv(d=5)   →(16,T, 33)  ┃─────┤ skip 5
-   ┗━━━━━━━━━━━━┯━━━━━━━━━━━━━━┛     │
-                │                       │
-        ┌───────▼───────┐               │
-        │   DPGRNN ×1   │  intra-frame + inter-frame
-        │ (B,16, T, 33) │                │
-        └───────┬───────┘                │
-                │                        │
-        ┌───────▼───────┐                │
-        │   DPGRNN ×2   │                │
-        │ (B,16, T, 33) │                │
-        └───────┬───────┘                │
-                │                        │
-   ┏━━━━━━━━━━━━┷━━━━━━━━━━━━━━┓        │
-   ┃           Decoder            ┃        │
-   ┃                              ┃        │
-   ┃  GT-DeConv(d=5)+skip5        ┃◀──────┘
-   ┃  GT-DeConv(d=2)+skip4        ┃◀──┐
-   ┃  GT-DeConv(d=1)+skip3        ┃◀──┤
-   ┃  DeConv(1×5,×2,g=2)+skip2    ┃◀──┤
-   ┃  DeConv(1×5,×2)+skip1, tanh  ┃◀──┘
-   ┃        ↓                     ┃
-   ┃   m_feat (B, 2, T, 129)      ┃
-   ┗━━━━━━━━━━━━┯━━━━━━━━━━━━━━┛
-                │
-        ┌───────▼───────┐
-        │   ERB BS      │ 反变换回 257 频点
-        │ (B, 2, T,257) │
-        └───────┬───────┘
-                │
-        ┌───────▼───────┐
-        │ Complex Mask  │ 复数乘法应用到原谱
-        └───────┬───────┘
-                │
-                ▼
-            增强 STFT (B, F=257, T, 2)
-```
+![图 FIG-11：GTCRN 详细数据流](figure/fig11_overall_flow_detail.png)
 
 ### 2.4 这个架构的几个核心设计抉择
 
@@ -355,10 +247,7 @@ def forward(self, spec):
 
 注意到编码器里 **stride 只在频率维 (1, 2)**，时间维永远是 stride=1：
 
-```python
-# gtcrn.py:232
-ConvBlock(3*3, 16, (1,5), stride=(1,2), ...)
-```
+抽象地说，这里最关键的是：**只对频率维做步长压缩，不对时间维做下采样。**
 
 为什么？因为**时间维度天然就需要保持精细分辨率**——你不能下采样时间，否则后面 RNN 看不见瞬态噪声。而**频率维度可以下采样**，因为相邻频点的信息有大量冗余（共振峰、谐波在频域是稀疏的）。
 
@@ -375,18 +264,11 @@ DPCRN 论文的核心贡献就在这里：中间瓶颈不是一路 RNN 看全部
 
 #### 抉择 4：解码器输出"掩码"而不是"干净谱"
 
-注意最后一层 `ConvBlock(..., is_last=True)`，激活函数是 `tanh`，输出范围 (-1, 1)。
+注意最后一层会使用 `tanh`，把输出限制在 `(-1, 1)` 范围内。
 
 这两个通道直接被当成**复数掩码**（CRM, Complex Ratio Mask）的实部和虚部：
 
-```python
-# gtcrn.py:271-274
-def forward(self, mask, spec):
-    s_real = spec[:,0] * mask[:,0] - spec[:,1] * mask[:,1]
-    s_imag = spec[:,1] * mask[:,0] + spec[:,0] * mask[:,1]
-    s = torch.stack([s_real, s_imag], dim=1)
-    return s
-```
+这里的本质就是一次复数乘法：掩码并不是凭空生成干净谱，而是在原谱的基础上做“复数修正”。
 
 这是一个**关键的设计哲学**：网络不直接预测干净谱，而是预测"对原谱应该做什么修改"。这相当于残差学习——网络只需要学"差异"，比直接重建容易得多。
 
@@ -414,15 +296,9 @@ CRM 比 IRM（理想比例掩码，只对幅度做掩码）的好处是**能同�
 
 ### 2.5 一个容易被忽略的细节：skip connection 的"加法"形式
 
-注意 [gtcrn.py:261](../../third_party/gtcrn/gtcrn.py#L261)：
+注意它的 skip connection 采用的是“相加”而不是“拼接”：
 
-```python
-def forward(self, x, en_outs):
-    N_layers = len(self.de_convs)
-    for i in range(N_layers):
-        x = self.de_convs[i](x + en_outs[N_layers-1-i])
-    return x
-```
+也就是说，解码器每往前走一层，都会把对应编码层的特征直接**相加**回来。
 
 经典 U-Net 的 skip 是 **concat（拼接）**，这里却用的是 **add（相加）**。
 
@@ -456,16 +332,9 @@ def forward(self, x, en_outs):
 
 ### 3.1 先看输入：从波形到 STFT，参数怎么定
 
-打开 [infer.py:18](../../third_party/gtcrn/infer.py#L18)：
+从常见实现设定来看，输入端通常会先做一次标准 STFT：
 
-```python
-input = torch.stft(torch.from_numpy(mix), 
-                   n_fft=512, 
-                   hop_length=256, 
-                   win_length=512, 
-                   window=torch.hann_window(512).pow(0.5), 
-                   return_complex=False)
-```
+从抽象过程看，输入端就是：用 `32 ms` 窗长、`16 ms` 帧移做一次标准 STFT，把波形转成 `257` 频点的复数时频表示。
 
 几个关键超参数：
 
@@ -497,13 +366,7 @@ input = torch.stft(torch.from_numpy(mix),
 
 ### 3.2 第一步特征工程：三通道拼接
 
-```python
-# gtcrn.py:298-301
-spec_real = spec[..., 0].permute(0,2,1)
-spec_imag = spec[..., 1].permute(0,2,1)
-spec_mag  = torch.sqrt(spec_real**2 + spec_imag**2 + 1e-12)
-feat = torch.stack([spec_mag, spec_real, spec_imag], dim=1)  # (B,3,T,257)
-```
+这一步可以概括成：从复数谱里拆出实部和虚部，再额外计算一个幅度谱，最后把三者堆成三通道输入。
 
 这一步做了什么？把原始的 `(real, imag)` 两通道扩成 `(mag, real, imag)` 三通道。
 
@@ -519,7 +382,7 @@ feat = torch.stack([spec_mag, spec_real, spec_imag], dim=1)  # (B,3,T,257)
 
 ![图 FIG-02：ERB 频带压缩示意](figure/fig02_erb_compression.png)
 
-打开 [gtcrn.py:11](../../third_party/gtcrn/gtcrn.py#L11)，看 `ERB` 类。
+这一部分通常会被实现成一个固定的 `ERB` 频带变换模块。
 
 #### 心理声学常识：什么是 ERB？
 
@@ -535,20 +398,7 @@ ERB（Equivalent Rectangular Bandwidth，等效矩形带宽）是描述人耳"�
 
 ERB 标度（也包括 Bark、Mel 标度）就是把 Hz 重新映射成"人耳感知意义上等间距"的尺度。**在高频区，多个 Hz 的 STFT 频点会被合并成一个 ERB 频带，因为人耳反正分辨不出。**
 
-ERB 的转换公式来自心理声学经典文献（Moore & Glasberg, 1990）：
-
-$$
-ERB(f) = 21.4 \log_{10}(0.00437 \cdot f + 1)
-$$
-
-代码里的实现完全对应：
-
-```python
-# gtcrn.py:22
-def hz2erb(self, freq_hz):
-    erb_f = 21.4 * np.log10(0.00437 * freq_hz + 1)
-    return erb_f
-```
+ERB 这一套的数学本质其实只有一句话：**频率越高，人耳的分辨率越粗。** 所以高频可以合并，低频则必须保留更多细节。
 
 #### GTCRN 的 ERB 怎么用？
 
@@ -556,11 +406,9 @@ def hz2erb(self, freq_hz):
 
 > **低频不动，高频才合并。**
 
-代码 [gtcrn.py:280](../../third_party/gtcrn/gtcrn.py#L280)：
+在 GTCRN 的设定里，可以把它理解成：
 
-```python
-self.erb = ERB(65, 64)
-```
+在 GTCRN 里，这可以直接理解成：低频保留 `65` 个线性频点，高频把 `192` 个频点压成 `64` 个感知频带。
 
 参数含义：
 
@@ -583,99 +431,49 @@ self.erb = ERB(65, 64)
 
 #### ERB 滤波器组的具体形状：三角窗
 
-我们看 [gtcrn.py:30](../../third_party/gtcrn/gtcrn.py#L30) `erb_filter_banks`：
+如果继续往下拆，ERB 滤波器组的构造逻辑大致如下：
 
-```python
-def erb_filter_banks(self, erb_subband_1, erb_subband_2, nfft=512, high_lim=8000, fs=16000):
-    low_lim = erb_subband_1/nfft * fs        # = 65/512 * 16000 ≈ 2031 Hz
-    erb_low  = self.hz2erb(low_lim)          # ≈ 14.4 ERB
-    erb_high = self.hz2erb(high_lim)         # ≈ 25.4 ERB
-    erb_points = np.linspace(erb_low, erb_high, erb_subband_2)  # 在 ERB 尺度上均匀取 64 个点
-    bins = np.round(self.erb2hz(erb_points)/fs*nfft).astype(np.int32)  # 转回 FFT bin 索引
-    
-    erb_filters = np.zeros([erb_subband_2, nfft // 2 + 1], dtype=np.float32)
-    # 构造三角窗
-    erb_filters[0, bins[0]:bins[1]] = (bins[1] - np.arange(bins[0], bins[1])) / (bins[1] - bins[0])
-    for i in range(erb_subband_2-2):
-        erb_filters[i + 1, bins[i]:bins[i+1]] = (np.arange(bins[i], bins[i+1]) - bins[i]) / (bins[i+1] - bins[i])
-        erb_filters[i + 1, bins[i+1]:bins[i+2]] = (bins[i+2] - np.arange(bins[i+1], bins[i+2])) / (bins[i+2] - bins[i+1])
-    erb_filters[-1, bins[-2]:bins[-1]+1] = 1 - erb_filters[-2, bins[-2]:bins[-1]+1]
-    return torch.from_numpy(np.abs(erb_filters))
-```
+如果把 ERB 滤波器组的生成过程抽象成步骤，它就是：
 
-这段代码在做什么？**构造 64 个三角形权重函数**，每个三角形覆盖几个 FFT 频点：
+1. 先在 ERB 尺度上均匀取点；
+2. 再把这些点映射回 FFT 的 bin；
+3. 最后在相邻 bin 之间搭出一组重叠的三角窗。
 
-```
-Filter i:    /\
-            /  \
-___________/    \___________
-   bins[i-1] bins[i] bins[i+1]
-```
+这段代码在做什么？**构造 64 个三角形权重函数**，每个三角形覆盖一段 FFT bin，并和相邻频带重叠：
+
+![图 FIG-12：ERB 三角滤波器示意](figure/fig12_erb_triangles.png)
 
 每个 ERB 频带 = 多个 FFT 频点的加权平均（三角窗加权）。这是 Mel/Bark/ERB 滤波器组的标准形式。
 
 #### 怎么用：BM 和 BS 是一对反操作
 
-```python
-# gtcrn.py:51-61
-def bm(self, x):
-    """Band Merging: (B,C,T,F=257) → (B,C,T,F=129)"""
-    x_low = x[..., :self.erb_subband_1]                  # 前 65 点不动
-    x_high = self.erb_fc(x[..., self.erb_subband_1:])    # 后 192 点过 ERB 矩阵
-    return torch.cat([x_low, x_high], dim=-1)
+所以 BM/BS 这一对操作可以理解成：低频直接直通，高频先压到 ERB 域里处理，最后再映射回原始线性频率轴。
 
-def bs(self, x_erb):
-    """Band Splitting: (B,C,T,F=129) → (B,C,T,F=257)"""
-    x_erb_low = x_erb[..., :self.erb_subband_1]
-    x_erb_high = self.ierb_fc(x_erb[..., self.erb_subband_1:])   # 反变换
-    return torch.cat([x_erb_low, x_erb_high], dim=-1)
-```
+注意这里的 ERB 映射虽然在实现上常被包成线性层，但它本质上仍然是一个固定变换。
 
-注意 `self.erb_fc` 和 `self.ierb_fc` 用的是 `nn.Linear`，但是：
-
-```python
-# gtcrn.py:19-20
-self.erb_fc.weight = nn.Parameter(erb_filters, requires_grad=False)
-self.ierb_fc.weight = nn.Parameter(erb_filters.T, requires_grad=False)
-```
+这里最重要的是设计哲学：**ERB 是固定先验，不是靠训练学出来的。**
 
 **`requires_grad=False`**——也就是说这两个矩阵**不参与训练**！
 
-这就引出了一个有趣的细节：论文里说参数量是 23.7K，但 README 更新成了 48.2K。差的就是这部分 ERB 矩阵的"参数"（虽然不可训练）。论文后来还提到："By replacing the invariant mapping from linear bands to ERB bands in the low-frequency dimension with simple concatenation instead of matrix multiplication, the MACs per second are reduced to 33 MMACs"——意思是低频部分本来可以用一个恒等矩阵走 Linear，但作者后来发现直接 `torch.cat` 拼接更省算力（避免不必要的矩阵乘法）。
+这就引出了一个有趣的细节：论文里说参数量是 23.7K，但 README 更新成了 48.2K。差的就是这部分 ERB 矩阵的“参数”（虽然不可训练）。论文后来还提到，低频部分如果直接视作拼接而不是矩阵乘法，整体算力还能继续往下省。
 
 > **设计哲学**：把不可训练的、有解析形式的变换写成"不可学习的 Linear"，是把领域知识嵌入网络的优雅方式。后续如果想让 ERB 矩阵可学习（end-to-end 优化），只需要把 `requires_grad` 改成 True。
 
 ### 3.4 SFE 模块：把"邻近频带"塞进通道维
 
-紧接着 ERB 之后是 SFE（Subband Feature Extraction），第 6 章会详细讲。这里先看它在 [gtcrn.py:281](../../third_party/gtcrn/gtcrn.py#L281) 怎么用：
+紧接着 ERB 之后是 SFE（Subband Feature Extraction），第 6 章会详细讲。这里先看它在整体流程里怎么用：
 
-```python
-self.sfe = SFE(3, 1)  # kernel_size=3, stride=1
-```
+在 GTCRN 里，SFE 可以简单理解为“每次看 3 个相邻频带”。
 
-`SFE` 的实现 [gtcrn.py:64](../../third_party/gtcrn/gtcrn.py#L64)：
+`SFE` 的实现思路可以抽象成这样：
 
-```python
-class SFE(nn.Module):
-    def __init__(self, kernel_size=3, stride=1):
-        super().__init__()
-        self.kernel_size = kernel_size
-        self.unfold = nn.Unfold(kernel_size=(1,kernel_size), stride=(1, stride), padding=(0, (kernel_size-1)//2))
-        
-    def forward(self, x):
-        """x: (B,C,T,F)"""
-        xs = self.unfold(x).reshape(x.shape[0], x.shape[1]*self.kernel_size, x.shape[2], x.shape[3])
-        return xs
-```
+它做的事情只有一句话：在每个频带位置上，把“左邻居、自己、右邻居”的特征一起塞进通道维。
 
-简单说：用 `nn.Unfold` 做"滑动窗口提取"，把每个频点的左右邻居拼到自己的通道维上。
+简单说：用一次滑窗提取，把每个频点的左右邻居拼到自己的通道维上。
 
 输入 `(B, 3, T, 129)`，经过 SFE(k=3) → 输出 `(B, 9, T, 129)`：
 
-```
-原始第 f 个频带的特征：[c0_mag, c0_real, c0_imag]  (3维)
-SFE 后第 f 个频带的特征：[f-1的3个, f的3个, f+1的3个]  (9维)
-```
+因此从感知上看，一个频带不再只看到自己，而是一次性看到一个 3 频带宽的小局部上下文。
 
 **为什么这样做？** 因为后面的卷积通道数只有 16，且使用了 grouped conv，每个 group 看到的频域上下文非常有限。SFE 提前把"邻居信息"打包好塞到通道维，让后面的 pointwise conv (1×1 conv) 直接就能用到。
 
@@ -709,7 +507,7 @@ SFE 后第 f 个频带的特征：[f-1的3个, f的3个, f+1的3个]  (9维)
 我们把这一章学到的东西凝成几条工程直觉：
 
 1. **遇到"维度过高、信息冗余"的场景，第一反应应该是去找领域已有的标度（Mel、Bark、ERB）**——不要从零设计下采样策略。
-2. **不可训练的领域变换可以写成 nn.Linear 且 `requires_grad=False`**——既享受 GPU 矩阵乘的高效，又不占用训练参数预算。
+2. **不可训练的领域变换可以直接固定下来**——既保留高效实现，又不占用训练参数预算。
 3. **"砍维度 → 升通道"是一个反复出现的范式**：信息守恒，但表示形式变了。
 4. **低频敏感、高频粗略**这种声学先验对语音相关网络极其重要，要主动找机会把这种先验编码进去。
 
@@ -733,66 +531,16 @@ SFE 后第 f 个频带的特征：[f-1的3个, f的3个, f+1的3个]  (9维)
 
 ![图 FIG-03：GT-Conv 块完整结构](figure/fig03_gtconv_block.png)
 
-### 4.1 先看代码：GT-Conv 长什么样
+### 4.1 先看抽象结构：GT-Conv 到底在做什么
 
-打开 [gtcrn.py:107](../../third_party/gtcrn/gtcrn.py#L107)：
+把 GT-Conv 完全抽象开来看，它就是一条很清楚的处理链：
 
-```python
-class GTConvBlock(nn.Module):
-    """Group Temporal Convolution"""
-    def __init__(self, in_channels, hidden_channels, kernel_size, stride, padding, dilation, use_deconv=False):
-        super().__init__()
-        self.use_deconv = use_deconv
-        self.pad_size = (kernel_size[0]-1) * dilation[0]
-        conv_module = nn.ConvTranspose2d if use_deconv else nn.Conv2d
-    
-        self.sfe = SFE(kernel_size=3, stride=1)
-        
-        # 第一个 1x1 卷积：通道升维（in/2 * 3 → hidden）
-        self.point_conv1 = conv_module(in_channels//2*3, hidden_channels, 1)
-        self.point_bn1 = nn.BatchNorm2d(hidden_channels)
-        self.point_act = nn.PReLU()
-
-        # 中间的 depthwise + dilated 卷积
-        self.depth_conv = conv_module(hidden_channels, hidden_channels, kernel_size,
-                                      stride=stride, padding=padding,
-                                      dilation=dilation, groups=hidden_channels)
-        self.depth_bn = nn.BatchNorm2d(hidden_channels)
-        self.depth_act = nn.PReLU()
-
-        # 第二个 1x1 卷积：通道降维（hidden → in/2）
-        self.point_conv2 = conv_module(hidden_channels, in_channels//2, 1)
-        self.point_bn2 = nn.BatchNorm2d(in_channels//2)
-        
-        self.tra = TRA(in_channels//2)  # 时序注意力，第 6 章详解
-
-    def shuffle(self, x1, x2):
-        """x1, x2: (B,C,T,F)"""
-        x = torch.stack([x1, x2], dim=1)
-        x = x.transpose(1, 2).contiguous()
-        x = rearrange(x, 'b c g t f -> b (c g) t f')
-        return x
-
-    def forward(self, x):
-        """x: (B, C, T, F)"""
-        # 分支拆分
-        x1, x2 = torch.chunk(x, chunks=2, dim=1)
-        
-        # 分支 1：核心处理
-        x1 = self.sfe(x1)
-        h1 = self.point_act(self.point_bn1(self.point_conv1(x1)))
-        h1 = nn.functional.pad(h1, [0, 0, self.pad_size, 0])  # 因果填充
-        h1 = self.depth_act(self.depth_bn(self.depth_conv(h1)))
-        h1 = self.point_bn2(self.point_conv2(h1))
-        h1 = self.tra(h1)
-
-        # 分支 2：恒等映射
-        # ...
-
-        # 合并 + Channel Shuffle
-        x = self.shuffle(h1, x2)
-        return x
-```
+1. 先把输入通道分成两半；
+2. 一半完全不计算，直接直通；
+3. 另一半先过 SFE，补上频域邻居信息；
+4. 再走 `1×1 通道混合 → depthwise 局部卷积 → 1×1 压回去` 的轻量主链；
+5. 主链末尾接 TRA，判断哪些时间帧更重要；
+6. 最后把两半交错混合，作为下一层输入。
 
 这是整篇网络里最复杂的模块，里面集成了 **4 个核心思想**：
 
@@ -816,28 +564,11 @@ class GTConvBlock(nn.Module):
 - 参数减半（卷积层输入输出通道都减半）
 - 信息不损失（shuffle 让两半交换信息）
 
-#### 代码对照
+#### 抽象理解
 
-```python
-# gtcrn.py:141 - 拆分
-x1, x2 = torch.chunk(x, chunks=2, dim=1)  # 通道维一分为二
+这里真正重要的不是某个具体 API，而是：**只计算一半通道，另一半保留原样，再通过交错混合防止两路信息彻底断开。**
 
-# 中间所有卷积都基于 in_channels//2，参数量减半
-
-# gtcrn.py:151 - 合并
-x = self.shuffle(h1, x2)
-```
-
-注意 `self.shuffle` 不是简单 `concat([h1, x2])`！它做了一次"交错"：
-
-```python
-def shuffle(self, x1, x2):
-    """x1, x2: (B,C,T,F)"""
-    x = torch.stack([x1, x2], dim=1)           # (B, 2, C, T, F)
-    x = x.transpose(1, 2).contiguous()          # (B, C, 2, T, F)
-    x = rearrange(x, 'b c g t f -> b (c g) t f')  # (B, 2C, T, F)
-    return x
-```
+这里的“shuffle”可以直接理解成：把“算过的通道”和“直通的通道”交错排布，让下一层再分组时，每组都能拿到两边混合后的信息。
 
 也就是说，输出通道排列是 `[x1[0], x2[0], x1[1], x2[1], ...]` 而不是 `[x1[0], x1[1], ..., x2[0], x2[1], ...]`。
 
@@ -861,14 +592,7 @@ GT-Conv 的核心是 "1×1 → 3×3(depthwise) → 1×1" 的三明治结构。�
 
 **关键：depthwise conv 的 `groups=hidden_channels`**，意味着每个通道独立做 3×3 卷积，通道之间不混合。混合的事情交给前后两个 1×1 conv。
 
-代码里：
-
-```python
-# gtcrn.py:121-123
-self.depth_conv = conv_module(hidden_channels, hidden_channels, kernel_size,
-                              stride=stride, padding=padding,
-                              dilation=dilation, groups=hidden_channels)  # 关键
-```
+这里你只需要记住一个抽象关系：标准卷积把“通道混合”和“局部感受野建模”绑在一起做；而 depthwise separable 是把这两件事拆开做，所以更省。
 
 `groups=hidden_channels` 把卷积分成 `hidden_channels` 组，每组 1 个通道——这就是 depthwise。
 
@@ -889,14 +613,7 @@ self.depth_conv = conv_module(hidden_channels, hidden_channels, kernel_size,
 
 ![图 FIG-04：三层 Dilated Conv 的感受野累积（1/2/5）](figure/fig04_dilated_receptive_field.png)
 
-代码里有个有趣的细节：三层 GT-Conv 的 `dilation` 不同：
-
-```python
-# gtcrn.py:234-236
-GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(0,1), dilation=(1,1), use_deconv=False),
-GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(0,1), dilation=(2,1), use_deconv=False),
-GTConvBlock(16, 16, (3,3), stride=(1,1), padding=(0,1), dilation=(5,1), use_deconv=False)
-```
+这里更重要的是 3 个 dilation 的功能分工：第一层看近邻，第二层看中距离历史，第三层把时间视野进一步拉长。
 
 dilation 分别是 **1, 2, 5**，**而且只在时间维（第一个数）有 dilation，频率维 dilation 始终是 1**。
 
@@ -904,11 +621,7 @@ dilation 分别是 **1, 2, 5**，**而且只在时间维（第一个数）有 di
 
 空洞卷积（dilated / atrous convolution）就是在卷积核之间插"空格"：
 
-```
-普通卷积 kernel=3:      [w0  w1  w2]            感受野 = 3
-dilation=2:             [w0  __  w1  __  w2]    感受野 = 5
-dilation=5:             [w0 ____ w1 ____ w2]    感受野 = 11
-```
+可以直接对照上面的 `FIG-04` 来理解：`dilation` 增大时，**参数个数不变，但采样点之间的间隔变大**，所以感受野会从 `3` 扩到 `5`、再扩到 `11`。
 
 **参数量不变（还是 3 个权重），但感受野扩大**。
 
@@ -938,12 +651,7 @@ dilation=5:             [w0 ____ w1 ____ w2]    感受野 = 11
 
 ![图 FIG-05：对称 padding vs 因果左侧 padding](figure/fig05_causal_padding.png)
 
-这一行非常关键：
-
-```python
-# gtcrn.py:145
-h1 = nn.functional.pad(h1, [0, 0, self.pad_size, 0])
-```
+这里真正关键的不是某个函数名，而是：**只在时间轴左侧补历史，不在右侧补未来。**
 
 `pad_size = (kernel_size[0] - 1) * dilation[0]`，对 kernel=3、dilation=5 来说 pad_size = 10。
 
@@ -953,40 +661,15 @@ h1 = nn.functional.pad(h1, [0, 0, self.pad_size, 0])
 
 考虑 kernel=3 的 1D 卷积：
 
-```
-不填充时，输出 t 依赖于输入 t-1, t, t+1
-也就是说，输出在 t 时刻 "看到了未来"（t+1）
-```
+如果使用普通对称 padding，那么输出时刻 `t` 会依赖 `t-1, t, t+1`，这就等于偷偷看了未来帧。
 
 **这就破坏了因果性**——而 SE 模型要做实时降噪，绝对不能用未来的输入。
 
-```
-只填充时间前面：
-       输入：[pad][pad][x0][x1][x2][x3]...
-       输出 t=0 依赖于 [pad][pad][x0] = 当前 + 历史
-       输出 t=1 依赖于 [pad][x0][x1] = 当前 + 历史
-       ...
-```
+而 GTCRN 采用的左侧 padding 可以理解为：每个输出只拿到**历史帧 + 当前帧**，因此天然满足实时部署的因果约束。
 
 这样每个输出只依赖于当前和过去，完美保证因果性。
 
-代码 [gtcrn.py:330](../../third_party/gtcrn/gtcrn.py#L330) 有一段**因果性验证测试**：
-
-```python
-"""causality check"""
-a = torch.randn(1, 16000)
-b = torch.randn(1, 16000)
-c = torch.randn(1, 16000)
-x1 = torch.cat([a, b], dim=1)   # 前 1 秒是 a，后 1 秒是 b
-x2 = torch.cat([a, c], dim=1)   # 前 1 秒是 a，后 1 秒是 c
-
-# 因果模型：前 1 秒的输出对 x1 和 x2 应该完全一样（因为前 1 秒输入相同）
-y1 = model(x1)
-y2 = model(x2)
-
-print((y1[:16000-256*2] - y2[:16000-256*2]).abs().max())  # 应该 ≈ 0
-print((y1[16000:] - y2[16000:]).abs().max())              # 应该 != 0
-```
+工程上通常会额外写一个**因果性验证测试**：构造两段前半段相同、后半段不同的输入；如果模型真的是因果的，那么前半段输出也必须完全相同。
 
 这个测试**就是用来验证"网络只看过去、不偷看未来"**的。如果有任何一层卷积或 RNN 双向了，前半段输出就会不一致。
 
@@ -994,18 +677,9 @@ print((y1[16000:] - y2[16000:]).abs().max())              # 应该 != 0
 
 ### 4.6 PReLU 而不是 ReLU：一个小但重要的选择
 
-注意所有激活函数都是 `nn.PReLU()`，最后输出层才用 `nn.Tanh()`：
+注意这里的激活策略也很有针对性：中间层保留正负信息，最后一层再把掩码限制在一个稳定范围里。
 
-```python
-self.point_act = nn.PReLU()
-self.depth_act = nn.PReLU()
-```
-
-**PReLU = Parametric ReLU**：
-
-```
-PReLU(x) = max(0, x) + α * min(0, x)
-```
+PReLU 的直觉理解是：正半轴正常通过，负半轴也不被彻底截断，而是保留一个可学习的小斜率。
 
 其中 `α` 是可学习的参数（每个通道一个）。当 α=0 时就是 ReLU；当 α=0.01 时就是 Leaky ReLU。
 
@@ -1108,43 +782,13 @@ A 和 B 都跑！一个建模时间依赖，一个建模频谱结构。**这就�
 
 DPRNN 原本是 Luo et al. (2020) 提出来做时域单声道语音分离的，DPCRN 把它搬到时频域。GTCRN 进一步在每个 RNN 上加 grouped 优化。
 
-打开 [gtcrn.py:186](../../third_party/gtcrn/gtcrn.py#L186) 看 `DPGRNN`：
-
-```python
-class DPGRNN(nn.Module):
-    """Grouped Dual-path RNN"""
-    def __init__(self, input_size, width, hidden_size, **kwargs):
-        super().__init__(**kwargs)
-        self.input_size = input_size       # = 16 (通道数)
-        self.width = width                 # = 33 (频率维度)
-        self.hidden_size = hidden_size     # = 16
-
-        # Intra-frame RNN: 双向 GRU
-        self.intra_rnn = GRNN(input_size=input_size, hidden_size=hidden_size//2, bidirectional=True)
-        self.intra_fc = nn.Linear(hidden_size, hidden_size)
-        self.intra_ln = nn.LayerNorm((width, hidden_size), eps=1e-8)
-
-        # Inter-frame RNN: 单向 GRU（保证因果）
-        self.inter_rnn = GRNN(input_size=input_size, hidden_size=hidden_size, bidirectional=False)
-        self.inter_fc = nn.Linear(hidden_size, hidden_size)
-        self.inter_ln = nn.LayerNorm((width, hidden_size), eps=1e-8)
-```
+把 DPGRNN 抽象出来，它其实只有两步：先做“帧内频率扫描”，再做“跨帧时间扫描”。每一步后面都跟一个轻量的特征混合层和归一化层。
 
 两个 RNN，配两个 FC 和两个 LayerNorm。
 
 #### Intra-frame RNN：建模"一帧的频谱形态"
 
-```python
-# gtcrn.py:204-211
-## Intra RNN
-x = x.permute(0, 2, 3, 1)                                 # (B,T,F,C)
-intra_x = x.reshape(x.shape[0] * x.shape[1], x.shape[2], x.shape[3])  # (B*T, F, C)
-intra_x = self.intra_rnn(intra_x)[0]                      # (B*T, F, C)
-intra_x = self.intra_fc(intra_x)
-intra_x = intra_x.reshape(x.shape[0], -1, self.width, self.hidden_size)  # (B, T, F, C)
-intra_x = self.intra_ln(intra_x)
-intra_out = torch.add(x, intra_x)                         # 残差连接
-```
+Intra-frame 阶段可以理解成：把每一帧单独拿出来，沿频率轴从低到高扫一遍，让模型先理解“这一帧的频谱长什么样”。
 
 关键操作：
 
@@ -1155,18 +799,7 @@ intra_out = torch.add(x, intra_x)                         # 残差连接
 
 #### Inter-frame RNN：建模"跨帧的时间依赖"
 
-```python
-# gtcrn.py:213-221
-## Inter RNN
-x = intra_out.permute(0,2,1,3)                             # (B,F,T,C)
-inter_x = x.reshape(x.shape[0] * x.shape[1], x.shape[2], x.shape[3])  # (B*F, T, C)
-inter_x = self.inter_rnn(inter_x)[0]                       # (B*F, T, C)
-inter_x = self.inter_fc(inter_x)
-inter_x = inter_x.reshape(x.shape[0], self.width, -1, self.hidden_size)  # (B, F, T, C)
-inter_x = inter_x.permute(0,2,1,3)                         # (B, T, F, C)
-inter_x = self.inter_ln(inter_x)
-inter_out = torch.add(intra_out, inter_x)
-```
+Inter-frame 阶段则相反：固定某个频点，沿时间轴往前看，让模型理解“这个频点在一段时间里是怎么变化的”。
 
 1. **把 F 维度合并到 batch**：`(B, F, T, C)`。每个频点被当成一个独立的"时间序列"。
 2. **沿 T 方向跑 RNN**：对每个频点，RNN 看到 t=0 的特征，更新隐藏状态，看到 t=1……
@@ -1184,34 +817,11 @@ inter_out = torch.add(intra_out, inter_x)
 
 ### 5.4 第二个问题：GRNN 是什么？为什么要 "Grouped"？
 
-我们看 [gtcrn.py:156](../../third_party/gtcrn/gtcrn.py#L156) 的 `GRNN`：
-
-```python
-class GRNN(nn.Module):
-    """Grouped RNN"""
-    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, bidirectional=False):
-        super().__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.bidirectional = bidirectional
-        # 关键：两个独立的 GRU，每个用一半的输入/隐藏维度
-        self.rnn1 = nn.GRU(input_size//2, hidden_size//2, num_layers, batch_first=batch_first, bidirectional=bidirectional)
-        self.rnn2 = nn.GRU(input_size//2, hidden_size//2, num_layers, batch_first=batch_first, bidirectional=bidirectional)
-
-    def forward(self, x, h=None):
-        # ...
-        x1, x2 = torch.chunk(x, chunks=2, dim=-1)           # 输入切两半
-        h1, h2 = torch.chunk(h, chunks=2, dim=-1)           # 隐藏状态切两半
-        y1, h1 = self.rnn1(x1, h1)
-        y2, h2 = self.rnn2(x2, h2)
-        y = torch.cat([y1, y2], dim=-1)                     # 输出拼起来
-        h = torch.cat([h1, h2], dim=-1)
-        return y, h
-```
+Grouped RNN 也可以直接口语化理解：把一个“大 GRU”拆成两个“小 GRU”，每个只负责一半特征，最后再把两半结果拼起来。
 
 #### 标准 GRU 的参数量
 
-`nn.GRU(input_size, hidden_size)` 的参数量是 **3 × (input_size × hidden_size + hidden_size²)**（GRU 有 3 个门：reset、update、new；公式简化版）。
+一个标准 GRU 的参数量，近似由“输入维度 × 隐藏维度”和“隐藏维度平方”两部分组成；这也是它很容易随宽度迅速膨胀的原因。
 
 当 `input_size = hidden_size = 16` 时：参数 = 3 × (16×16 + 16×16) = **1536**。
 
@@ -1230,15 +840,7 @@ GRNN 把一个 hidden_size=16 的 GRU 拆成两个 hidden_size=8 的 GRU：
 
 为什么省？因为标准 GRU 里 "input → hidden" 这个矩阵 (16×16) 假设了**所有输入都和所有隐藏维度有交互**。但实际上很多交互是冗余的——拆成 group 后，每个 group 只在自己内部交互，**等价于在权重矩阵上加了 block-diagonal 约束**：
 
-```
-原标准 GRU 权重 (16×16):                Grouped GRU 权重:
-[● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●]      [● ● ● ● ● ● ● ● . . . . . . . .]
-[● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●]      [● ● ● ● ● ● ● ● . . . . . . . .]
-[● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●]      [● ● ● ● ● ● ● ● . . . . . . . .]
-...                                     ...
-                                        [. . . . . . . . ● ● ● ● ● ● ● ●]
-                                        [. . . . . . . . ● ● ● ● ● ● ● ●]
-```
+![图 FIG-13：标准 GRU 与 Grouped GRU 的权重结构对比](figure/fig13_grouped_gru_matrix.png)
 
 灰色"."表示置零的权重。
 
@@ -1248,23 +850,19 @@ GRNN 把一个 hidden_size=16 的 GRU 拆成两个 hidden_size=8 的 GRU：
 
 那作者怎么补这个洞？
 
-```python
-# gtcrn.py:194-195
-self.intra_rnn = GRNN(input_size=input_size, hidden_size=hidden_size//2, bidirectional=True)
-self.intra_fc = nn.Linear(hidden_size, hidden_size)
-```
+而后面的全连接层，本质上就是“重新把两组信息掺到一起”，避免分组后彻底各玩各的。
 
-**用一个 `nn.Linear(hidden_size, hidden_size)` 在 GRNN 之后做信息交换**！
+作者会在 GRNN 之后再补一个全连接混合层，专门负责做组间的信息交换。
 
 这个 FC 层是全连接的（不是 grouped），所以它能让 group 1 和 group 2 的信息混起来。这就是论文里说的"implicit feature rearrangement"——本来 ShuffleNet 风格的 GRNN 会用一个显式的 "shuffle" 操作（不可学习），GTCRN 改成"FC 层自己学怎么 shuffle"，这样信息混合方式是数据驱动的。
 
 > 这也是为什么作者在 README 里特别提到："The explicit feature rearrangement layer in the grouped RNN ... can result in an unstreamable model. Therefore, we discard it and implicitly achieve feature rearrangement through the following FC layer in the DPGRNN."
 >
-> **显式 shuffle 在流式部署时有问题**（涉及非标准 reshape），所以用 FC 替代。这是一个工程驱动的设计调整。
+> **显式 shuffle 在流式部署时有问题**，所以作者改成用后续混合层隐式完成。这是一个工程驱动的设计调整。
 
 ### 5.5 LayerNorm 而不是 BatchNorm：为什么？
 
-注意 DPGRNN 用的是 `nn.LayerNorm`，而 GT-Conv 用的是 `nn.BatchNorm2d`。这不是随便选的。
+注意 DPGRNN 用的是层归一化，而 GT-Conv 用的是批归一化。这不是随便选的。
 
 #### BatchNorm 的问题
 
@@ -1282,11 +880,7 @@ LayerNorm 沿 **特征维度** 做归一化，每一帧、每一个频点独立�
 - 不破坏时间维度
 - 流式部署天然兼容
 
-代码里：
-
-```python
-self.intra_ln = nn.LayerNorm((width, hidden_size), eps=1e-8)
-```
+这里更重要的不是某个具体写法，而是归一化策略本身：CNN 段偏向用 BN，RNN 段偏向用 LN，因为后者更适合时间序列状态建模。
 
 shape 是 `(width, hidden_size) = (33, 16)`——也就是对每一帧的 33 × 16 = 528 个特征做归一化。
 
@@ -1312,7 +906,7 @@ shape 是 `(width, hidden_size) = (33, 16)`——也就是对每一帧的 33 × 
 
 **FC 层**
 
-- `nn.Linear(16, 16)`：256 参数，每帧 33 频点 × 256 = 8,448 MACs
+- 一个 `16 → 16` 的全连接混合层：约 256 个参数，每帧额外带来一小段可控算力
 
 **LayerNorm**
 
@@ -1330,26 +924,11 @@ shape 是 `(width, hidden_size) = (33, 16)`——也就是对每一帧的 33 × 
 
 **场景**：一个被空调白噪声污染的"啊—————"长元音
 
-**Intra-frame RNN 看到的**：
-
-```
-某一时刻 t=50 帧的频谱（33 个 ERB 频带）：
-f=0 (低频)：能量高（基频）
-f=1-5：能量阶梯下降（谐波）
-f=6-15：能量低（谐波之间）
-f=16-32 (高频)：相对均匀（白噪声）
-```
+**Intra-frame RNN 看到的**：某一时刻 `t=50` 的 33 个 ERB 频带里，低频处往往有明显的基频和谐波结构，而高频段更接近平坦噪声底。它擅长识别这种**横向频谱形态**。
 
 Intra RNN 沿 f 跑一遍，能学到"有规律的能量分布 = 语音，平坦分布 = 噪声"。它把这个**频谱模式信息**编码到隐藏状态里。
 
-**Inter-frame RNN 看到的**：
-
-```
-某个频点 f=2 在 t=0..200 帧的演化：
-t=0-10：能量低（无语音）
-t=11-100：能量持续高（元音持续）
-t=101-200：能量低（元音结束）
-```
+**Inter-frame RNN 看到的**：固定某个频点后，时间上会出现从静音到持续元音、再回到静音的能量轨迹。它擅长识别这种**纵向时间模式**。
 
 Inter RNN 沿 t 跑，能学到"能量持续 90 帧高 = 语音，能量平稳持续 200 帧 = 稳态噪声"。它把这个**时间模式信息**编码到隐藏状态里。
 
@@ -1414,80 +993,33 @@ DPGRNN 这个模块完美演绎了一个轻量化网络设计的核心思想：
 
 总结：**SFE 是廉价的算力换性能（多 5M MACs，得 +0.03 PESQ），TRA 是昂贵但精准的参数换性能（多 8K 参数，得 +0.04 PESQ）**。两者互补。
 
-### 6.2 SFE 模块：用一行 `nn.Unfold` 改变特征布局
+### 6.2 SFE 模块：用一次滑窗重排改变特征布局
 
 ![图 FIG-07：SFE 把邻近 3 个频带的特征堆到通道维](figure/fig07_sfe_operation.png)
 
-#### 看代码
+#### 看抽象过程
 
-[gtcrn.py:64](../../third_party/gtcrn/gtcrn.py#L64)：
+整个模块的本质并不复杂：它只是把频域上的一个小滑窗，重排到通道维里。
 
-```python
-class SFE(nn.Module):
-    """Subband Feature Extraction"""
-    def __init__(self, kernel_size=3, stride=1):
-        super().__init__()
-        self.kernel_size = kernel_size
-        self.unfold = nn.Unfold(kernel_size=(1, kernel_size), 
-                                stride=(1, stride), 
-                                padding=(0, (kernel_size-1)//2))
-        
-    def forward(self, x):
-        """x: (B,C,T,F)"""
-        xs = self.unfold(x).reshape(x.shape[0], x.shape[1]*self.kernel_size, x.shape[2], x.shape[3])
-        return xs
-```
+#### 滑窗重排是做什么的？
 
-整个模块就一行核心代码：`nn.Unfold(kernel_size=(1,3))`。
+它做的是 **"滑动窗口提取"**——和卷积一样滑窗，但**只提取窗口内的值**，不做内积。
 
-#### `nn.Unfold` 是做什么的？
-
-`nn.Unfold` 是 PyTorch 里很少被讲到但极其重要的算子。它做的是 **"滑动窗口提取"**——和卷积一样滑窗，但**只提取窗口内的值**，不做内积。
-
-举个例子，输入是 1D 序列 `[a, b, c, d, e]`，`Unfold(k=3, padding=1)`：
-
-```
-窗口位置 1: [pad, a, b]
-窗口位置 2: [a, b, c]
-窗口位置 3: [b, c, d]
-窗口位置 4: [c, d, e]
-窗口位置 5: [d, e, pad]
-
-输出 shape: (3, 5) — 3 个窗口元素，5 个窗口位置
-```
+举个例子，输入是 1D 序列 `[a, b, c, d, e]`，`Unfold(k=3, padding=1)` 会依次提取 `[pad, a, b]`、`[a, b, c]`、`[b, c, d]`、`[c, d, e]`、`[d, e, pad]` 这 5 个长度为 3 的滑窗，并把它们排成一个滑窗矩阵。
 
 也就是说，**Unfold 把"卷积的输入展开成滑窗矩阵"**——这是手写卷积时最关键的一步：im2col。
 
 #### SFE 在 GTCRN 里做什么？
 
-输入 `(B, 3, T, 129)`，SFE 之后：
-
-```python
-xs = self.unfold(x)  # (B, 3*3, T*129)
-xs = xs.reshape(B, 9, T, 129)
-```
+输入 `(B, 3, T, 129)` 之后，SFE 会把每个频带从“只看自己”变成“同时看左右邻居和自己”，于是单点特征从 3 维扩成 9 维。
 
 也就是：**每个频带 f，把它和左右两个邻居 (f-1, f, f+1) 的特征 concat 到通道维**。
 
-视觉化：
-
-```
-SFE 之前 (3 通道):
-频带 f=10 的特征:  [mag_10, real_10, imag_10]
-
-SFE 之后 (9 通道):
-频带 f=10 的特征:  [mag_9, real_9, imag_9,
-                    mag_10, real_10, imag_10,
-                    mag_11, real_11, imag_11]
-```
+视觉上可以直接看前面的 `FIG-07`：SFE 之前，频带 `f=10` 只有自己的 3 维特征；SFE 之后，它会把 `f-1`、`f`、`f+1` 三个频带的特征一起堆到通道维，于是从 3 维扩成 9 维。
 
 #### 为什么这样做有效？
 
-这里我们要回到 GT-Conv 的设计。GT-Conv 的核心计算是 `point_conv1`，它是一个 **1×1 卷积**：
-
-```python
-self.point_conv1 = conv_module(in_channels//2*3, hidden_channels, 1)
-```
+这里我们要回到 GT-Conv 的设计。GT-Conv 的前置混合层是一个 **1×1 卷积**，而 1×1 卷积天然只会处理“当前位置的通道信息”，不会主动看到左右频带。
 
 **1×1 卷积只能看到同一空间位置的特征**——也就是说，对频带 f，1×1 卷积只能看到 f 自己的通道，看不到 f-1 和 f+1 的信息。
 
@@ -1501,9 +1033,7 @@ self.point_conv1 = conv_module(in_channels//2*3, hidden_channels, 1)
 
 数学上确实等价：
 
-```
-SFE(k=3) + 1×1 Conv(3C → C')  ≡  3×3 Conv(C → C')
-```
+从局部感受野的角度看，`SFE(k=3) + 1×1 Conv(3C → C')` 可以理解成一种把邻域信息先展开、再做通道混合的轻量替代形式。
 
 但**计算成本不一样**：
 
@@ -1514,11 +1044,7 @@ SFE(k=3) + 1×1 Conv(3C → C')  ≡  3×3 Conv(C → C')
 
 **关键差异在于 SFE 后面跟的是 GT-Conv 的 grouped depthwise**！
 
-```
-GT-Conv 的完整链路：SFE → 1×1 → depthwise 3×3 → 1×1
-等价于：             1×1 → depthwise 3×3 → 1×1（无 SFE）
-                     ↑ 但这种链路缺少了"频域邻居信息"！
-```
+如果没有 SFE，这条链路虽然仍然是 `1×1 → depthwise 3×3 → 1×1`，但第一个 `1×1` 看到的只是当前频带本身，缺少最关键的频域邻居信息。
 
 也就是说，**没有 SFE 时，depthwise 3×3 看不到频域邻居（因为 depthwise 在通道维独立，且 padding 只让它看到时间维邻居）**。SFE 提前把频域邻居塞到通道维，让 depthwise 间接看到。
 
@@ -1526,7 +1052,7 @@ GT-Conv 的完整链路：SFE → 1×1 → depthwise 3×3 → 1×1
 
 #### 算力账：SFE 真的"廉价"吗？
 
-SFE 自己不带参数（Unfold 是纯 reshape），但它会让后续 1×1 卷积的输入通道从 C 变成 3C：
+SFE 自己不带参数，但它会让后续 1×1 卷积的输入通道从 `C` 变成 `3C`：
 
 - 1×1 卷积参数：`3C × C'` 是 `C × C'` 的 **3 倍**
 - 算力也是 3 倍
@@ -1557,45 +1083,13 @@ TRA 是 GTCRN 真正的原创贡献。我们一步一步看。
 
 **TRA 的创新**：把全连接层换成 GRU，让 attention weight 的计算**带有时间记忆**——这一帧的重要性不仅取决于这一帧本身，还取决于历史帧的状态。
 
-#### 看代码
+#### 看抽象过程
 
-[gtcrn.py:77](../../third_party/gtcrn/gtcrn.py#L77)：
-
-```python
-class TRA(nn.Module):
-    """Temporal Recurrent Attention"""
-    def __init__(self, channels):
-        super().__init__()
-        self.att_gru = nn.GRU(channels, channels*2, 1, batch_first=True)
-        self.att_fc = nn.Linear(channels*2, channels)
-        self.att_act = nn.Sigmoid()
-
-    def forward(self, x):
-        """x: (B,C,T,F)"""
-        # 步骤 1: 沿频率维聚合能量
-        zt = torch.mean(x.pow(2), dim=-1)  # (B,C,T)
-        
-        # 步骤 2: 用 GRU 处理时间序列
-        at = self.att_gru(zt.transpose(1,2))[0]  # (B,T,2C)
-        
-        # 步骤 3: FC 把维度恢复
-        at = self.att_fc(at).transpose(1,2)  # (B,C,T)
-        
-        # 步骤 4: Sigmoid 得到 0-1 的注意力权重
-        at = self.att_act(at)
-        At = at[..., None]  # (B,C,T,1)
-
-        # 步骤 5: 应用到原特征
-        return x * At
-```
+TRA 的核心逻辑其实一句话就能说清：**先判断每一帧重不重要，再把这个重要性乘回去。**
 
 #### 逐步拆解 TRA 的 5 个步骤
 
-**步骤 1：能量聚合 `zt = mean(x²)` 沿频率维**
-
-```python
-zt = torch.mean(x.pow(2), dim=-1)  # (B,C,T,F) → (B,C,T)
-```
+**步骤 1：先把频率维能量聚合掉**
 
 为什么用平方再平均？**这是"短时能量"的定义**——`E_t = mean(|X_t|²)` 是 DSP 里描述帧能量的标准方式。
 
@@ -1604,40 +1098,23 @@ zt = torch.mean(x.pow(2), dim=-1)  # (B,C,T,F) → (B,C,T)
 
 输出是 `(B, C, T)`——每个通道、每一帧的能量。
 
-> 注意这里没有用 `nn.AvgPool` 或者 `nn.AdaptiveAvgPool`，而是手动 `x.pow(2).mean(-1)`。这是因为 ONNX 和很多嵌入式推理框架对自定义运算的支持更好。
+> 这里本质上只是做一个沿频率维的能量平均；实现方式可以很多，但作者显然更偏向部署友好的写法。
 
-**步骤 2：GRU 处理时间序列**
-
-```python
-at = self.att_gru(zt.transpose(1,2))[0]  # (B,T,C) → (B,T,2C)
-```
+**步骤 2：再让一个小 GRU 看时间变化**
 
 把 `(B, C, T)` 转成 `(B, T, C)`，喂给 GRU。GRU 输入维度 = C = 8 (`in_channels//2`)，输出维度 = 2C = 16。
 
 为什么输出要翻倍？为了**增加表达能力**。注意 GRU 的隐藏维度越大，能记住的状态越复杂。但代价是参数翻倍。
 
-**步骤 3：FC 降维回 C**
-
-```python
-at = self.att_fc(at).transpose(1,2)  # (B,T,2C) → (B,C,T)
-```
+**步骤 3：把时序描述压回原通道数**
 
 把 GRU 输出从 2C 降回 C，对应原始的通道数。
 
-**步骤 4：Sigmoid 得到 0-1 权重**
-
-```python
-at = self.att_act(at)  # 每个值都在 (0, 1) 之间
-At = at[..., None]     # 加一个频率维度 (B,C,T,1)，便于广播
-```
+**步骤 4：把它变成 0 到 1 的软权重**
 
 Sigmoid 把任意实数压到 (0, 1)，作为"乘性权重"。值越接近 1，这一帧越重要；越接近 0，这一帧越被抑制。
 
-**步骤 5：广播相乘应用到原特征**
-
-```python
-return x * At
-```
+**步骤 5：把这份权重广播乘回整张时频图**
 
 `x` 的 shape 是 `(B, C, T, F)`，`At` 的 shape 是 `(B, C, T, 1)`。乘法时 `At` 沿 F 维度广播，**同一帧的所有频带共享同一个权重**。
 
@@ -1680,24 +1157,7 @@ PyTorch 的 GRU 实现还有一个好处：**和很多嵌入式推理引擎（�
 
 ### 6.4 SFE + TRA 在 GT-Conv 中的位置
 
-回到 GT-Conv 的代码 [gtcrn.py:139](../../third_party/gtcrn/gtcrn.py#L139)：
-
-```python
-def forward(self, x):
-    """x: (B, C, T, F)"""
-    x1, x2 = torch.chunk(x, chunks=2, dim=1)
-
-    x1 = self.sfe(x1)                                        # ← SFE 在最前
-    h1 = self.point_act(self.point_bn1(self.point_conv1(x1)))
-    h1 = nn.functional.pad(h1, [0, 0, self.pad_size, 0])
-    h1 = self.depth_act(self.depth_bn(self.depth_conv(h1)))
-    h1 = self.point_bn2(self.point_conv2(h1))
-
-    h1 = self.tra(h1)                                        # ← TRA 在最后
-
-    x = self.shuffle(h1, x2)
-    return x
-```
+回到 GT-Conv 的主链路，你只需要记住两个位置：**SFE 在最前面补频域上下文，TRA 在最后面做时间重加权。**
 
 注意位置：
 
@@ -1710,11 +1170,7 @@ def forward(self, x):
 
 #### SFE 的 `padding=(0, (kernel_size-1)//2)`
 
-```python
-self.unfold = nn.Unfold(kernel_size=(1,kernel_size), 
-                        stride=(1, stride), 
-                        padding=(0, (kernel_size-1)//2))
-```
+这里更重要的不是某个 API，而是：SFE 在频率轴上左右对称取邻域，因为频率轴本来就没有因果性要求。
 
 对 k=3，padding = 1。**两边都填 padding！** 不是只填一边。
 
@@ -1736,49 +1192,13 @@ self.unfold = nn.Unfold(kernel_size=(1,kernel_size),
 
 ### 6.6 把 GT-Conv + SFE + TRA 看作一个整体
 
-现在我们可以画一个 GT-Conv 完整数据流图（含 SFE 和 TRA）：
+现在回头看 `FIG-03` 和 `FIG-08`，其实已经能把这个完整数据流拼起来了：`FIG-03` 给出 GT-Conv 主干，`FIG-08` 把末尾的 TRA 展开。合起来就是一条完整链路：
 
-```
-              输入 x (B, 16, T, F)
-                    │
-            chunk dim=1 (分两半)
-            ┌───────┴───────┐
-            ▼               ▼
-        x1 (B,8,T,F)    x2 (B,8,T,F)   ──→ identity
-            │
-        SFE k=3
-            ▼
-        x1' (B,24,T,F)
-            │
-        1×1 Conv(24→16) + BN + PReLU
-            ▼
-        h1 (B,16,T,F)
-            │
-        因果 pad (左填 pad_size)
-            ▼
-        depthwise 3×3 (dilated) + BN + PReLU
-            ▼
-        h1 (B,16,T,F)
-            │
-        1×1 Conv(16→8) + BN
-            ▼
-        h1 (B,8,T,F)
-            │
-        TRA
-            │ ┌─ 能量聚合 (mean square along F)
-            │ ├─ GRU(8→16)
-            │ ├─ FC(16→8)
-            │ ├─ Sigmoid
-            │ └─ 广播相乘
-            ▼
-        h1 (B,8,T,F)
-            │
-            └───────┬───────┘
-                    │
-            shuffle (交错合并)
-                    ▼
-              输出 (B, 16, T, F)
-```
+1. `chunk` 把通道拆成两半，一半走计算支路，一半走 identity 支路；
+2. 计算支路先过 SFE，把频域邻居打包到通道维；
+3. 再走 `1×1 → depthwise dilated conv → 1×1` 的轻量卷积链；
+4. 最后接 TRA，给每一帧一个时序注意力权重；
+5. 与 identity 支路做 shuffle 合并，恢复到 `(B, 16, T, F)`。
 
 整个 GT-Conv 块的**信息流可以理解为**：
 
@@ -1807,46 +1227,23 @@ self.unfold = nn.Unfold(kernel_size=(1,kernel_size),
 
 #### 选择 A：直接预测干净谱（Direct Mapping）
 
-网络输入是带噪谱 $X$，输出是干净谱 $\hat S$，目标是 $\|\hat S - S\|^2$ 最小。
+网络输入是带噪谱，输出是干净谱，目标是让两者尽量接近。
 
 **问题**：网络要从零重建整个频谱。**输入的有效信号也要重建**——这相当于网络做了"copy + 去噪"两件事。
 
 #### 选择 B：预测幅度掩码（Magnitude Mask）
 
-网络输出一个 0-1 的掩码 $M$，应用到带噪幅度谱：$|\hat S| = M \odot |X|$。相位继承自带噪谱。
+网络输出一个 0 到 1 的幅度掩码，只去调整强弱；相位则直接沿用带噪输入的相位。
 
 **问题**：**相位不能修**——但相位失真在低 SNR 下非常显著，听感会"虚"。这是 RNNoise、Wiener filter 等经典方法的局限。
 
 #### 选择 C：预测复数掩码（Complex Ratio Mask, CRM）
 
-CRM 是一个复数掩码 $M = M_r + jM_i$，应用方式：
-
-$$
-\hat S = M \odot X = (M_r + jM_i)(X_r + jX_i)
-$$
-
-展开：
-
-$$
-\hat S_r = M_r X_r - M_i X_i \\
-\hat S_i = M_r X_i + M_i X_r
-$$
+CRM 的核心理解其实不需要公式：它相当于给原始复数谱套了一个“复数修正器”，既能改强弱，也能改相位方向。
 
 **优点**：同时修正幅度和相位。
 
-这就是 GTCRN 用的方案。看 [gtcrn.py:265](../../third_party/gtcrn/gtcrn.py#L265)：
-
-```python
-class Mask(nn.Module):
-    """Complex Ratio Mask"""
-    def forward(self, mask, spec):
-        s_real = spec[:,0] * mask[:,0] - spec[:,1] * mask[:,1]
-        s_imag = spec[:,1] * mask[:,0] + spec[:,0] * mask[:,1]
-        s = torch.stack([s_real, s_imag], dim=1)
-        return s
-```
-
-完全对应复数乘法公式。两行代码搞定。
+![图 FIG-14：CRM 复数掩码作用过程](figure/fig14_crm_process.png)
 
 ### 7.2 为什么是 CRM 而不是别的？
 
@@ -1864,31 +1261,23 @@ CRM 的"输出范围"是个微妙的问题。理论上 CRM 的实虚部可以是
 - **如果不约束，输出可能爆炸**：尤其是低能量频点除以 0 的情况
 - **GTCRN 用 tanh** 把输出限制在 (-1, 1)，相当于约束 |M| ≤ √2
 
-代码 [gtcrn.py:255](../../third_party/gtcrn/gtcrn.py#L255)：
+在输出头里，最后一层通常会把掩码压到一个更稳定的范围里，避免低能量区域被过度放大。
 
-```python
-ConvBlock(16, 2, (1,5), stride=(1,2), padding=(0,2), use_deconv=True, is_last=True)
-```
-
-`is_last=True` 让最后的激活函数变成 `nn.Tanh()`，输出 2 个通道分别作为掩码实部和虚部。
+最后一层会把输出限制在一个稳定范围里，并生成两路结果，分别对应复数掩码的两个分量。
 
 #### 为什么是 tanh 而不是 sigmoid？
 
 Sigmoid 输出 (0, 1)，永远是正数。但 CRM 的实部和虚部**可以是负数**！考虑一个简单情况：
 
-- 带噪谱 $X = 1 + 0j$
-- 干净谱 $S = 0.5 + 0.3j$
-- 那么 $M = S/X = 0.5 + 0.3j$
+- 假设带噪谱在复平面上指向一个方向；
+- 干净谱指向另一个方向；
+- 那么中间这个“修正量”就可能带有负值分量。
 
-如果 $S$ 和 $X$ 的相位差超过 90°，$M$ 的实部就是负数。Sigmoid 永远学不到负的掩码值，所以必须用 tanh。
+如果目标方向和原始方向差得比较大，这个修正量就会出现负值；所以只会输出正数的激活函数不适合这里。
 
 ### 7.3 损失函数：单一损失为什么不行
 
-最朴素的损失是 MSE（均方误差）：
-
-$$
-L = \frac{1}{N} \sum (\hat s - s)^2
-$$
+最朴素的损失，就是直接比较增强结果和目标结果的数值差异。
 
 直接拿增强后的波形和干净波形比较。**问题**是：
 
@@ -1899,61 +1288,23 @@ $$
 
 ### 7.4 GTCRN 的混合损失
 
-打开 [loss.py](../../third_party/gtcrn/loss.py)：
+把训练目标抽象开来看，其实就是三路同时约束：一路看幅度轮廓，一路看压缩后的复数细节，一路看回到时域后的整体听感。
 
-```python
-class HybridLoss(nn.Module):
-    def forward(self, pred_stft, true_stft):
-        # 拆出实虚部
-        pred_stft_real, pred_stft_imag = pred_stft[:,:,:,0], pred_stft[:,:,:,1]
-        true_stft_real, true_stft_imag = true_stft[:,:,:,0], true_stft[:,:,:,1]
-        
-        # 幅度谱
-        pred_mag = torch.sqrt(pred_stft_real**2 + pred_stft_imag**2 + 1e-12)
-        true_mag = torch.sqrt(true_stft_real**2 + true_stft_imag**2 + 1e-12)
-        
-        # 压缩谱
-        pred_real_c = pred_stft_real / (pred_mag**(0.7))
-        pred_imag_c = pred_stft_imag / (pred_mag**(0.7))
-        true_real_c = true_stft_real / (true_mag**(0.7))
-        true_imag_c = true_stft_imag / (true_mag**(0.7))
-        
-        # 三个频域损失
-        real_loss = nn.MSELoss()(pred_real_c, true_real_c)
-        imag_loss = nn.MSELoss()(pred_imag_c, true_imag_c)
-        mag_loss = nn.MSELoss()(pred_mag**(0.3), true_mag**(0.3))
-        
-        # SISNR 时域损失
-        y_pred = torch.istft(pred_stft_real+1j*pred_stft_imag, 512, 256, 512, ...)
-        y_true = torch.istft(true_stft_real+1j*true_stft_imag, 512, 256, 512, ...)
-        # ... SISNR 计算
+![图 FIG-15：混合损失组成示意](figure/fig15_hybrid_loss.png)
 
-        return 30*(real_loss + imag_loss) + 70*mag_loss + sisnr
-```
-
-加权混合损失，对应论文公式：
-
-$$
-L = \alpha L_{SISNR} + (1-\beta) L_{mag} + \beta (L_{real} + L_{imag})
-$$
-
-其中 $\alpha=0.01, \beta=0.3$。
+所以“混合损失”的本质不是背某个公式，而是：**不要只从一个角度要求模型做对。**
 
 **注意论文和代码的权重不完全一致**——这是 SE 论文里常见的"代码比论文更新"的情况。我们以代码为准。
 
-代码里的权重：
-
-- $30 \times L_{real} + 30 \times L_{imag} + 70 \times L_{mag} + 1 \times L_{SISNR}$
+代码里的权重大意是：幅度约束最重，复数细节次之，时域一致性再做兜底。
 
 也就是 **幅度损失权重最高（70），实虚部损失次之（各 30），SISNR 最低（1）**。
 
 ### 7.5 逐项拆解：每个损失项管什么
 
-#### 幅度损失 $L_{mag}$
+#### 幅度损失
 
-```python
-mag_loss = nn.MSELoss()(pred_mag**(0.3), true_mag**(0.3))
-```
+这里最重要的不是某行实现，而是“先做功率压缩，再比较幅度”。
 
 注意有个 `**(0.3)`——这是**功率压缩**（power compression）。
 
@@ -1961,39 +1312,25 @@ mag_loss = nn.MSELoss()(pred_mag**(0.3), true_mag**(0.3))
 
 语音的幅度谱**动态范围极大**。低频共振峰能量可能是高频噪声的 1000 倍。如果直接用 MSE，**大能量频点的损失会主导训练**，小能量频点（恰恰是高频细节）被忽略。
 
-压缩指数 0.3 把 `|S|` 映射到 `|S|^0.3`：
+如果把幅度先做一次压缩：
 
-- |S| = 1     → 1
-- |S| = 10    → 2.0
-- |S| = 100   → 4.0
-- |S| = 1000  → 7.9
+- 小能量基本保持原状；
+- 大能量会被明显压缩；
+- 于是训练时不会总被少数超大能量频点牵着走。
 
 **动态范围从 1:1000 压成 1:7.9**——网络对各个能量区间的关注更均衡。
 
 > 0.3 这个数字来自经验（不同论文用 0.2-0.5 都有）。这种"非线性压缩"是 SE 训练里的标准 trick。
 
-#### 实虚部损失 $L_{real}, L_{imag}$
+#### 复数细节损失
 
-```python
-pred_real_c = pred_stft_real / (pred_mag**(0.7))
-pred_imag_c = pred_stft_imag / (pred_mag**(0.7))
-real_loss = nn.MSELoss()(pred_real_c, true_real_c)
-imag_loss = nn.MSELoss()(pred_imag_c, true_imag_c)
-```
+实部/虚部那一路也不是直接硬比，而是先映射到压缩域，再比较复数细节。
 
 实虚部各除以 `|S|^0.7`，再做 MSE。
 
 **为什么除以 |S|^0.7？** 注意：
 
-```
-mag_loss 用了 |S|^0.3
-real/imag loss 把 real/imag 除以 |S|^0.7
-
-(|S|^0.3) 和 (real/|S|^0.7) 联立：
-real_c = (mag * cos(phase)) / mag^0.7 = mag^0.3 * cos(phase)
-
-也就是说，real_c 在数学上等价于"压缩后的实部"。
-```
+直觉上，你可以把它理解成：幅度分支和复数分支都被拉到了同一个“压缩过的尺度”上，所以它们的损失权重才有可比性。
 
 **这是一个非常巧妙的设计**：让幅度损失和实虚部损失在**同一个压缩域**里，权重才有可比性。否则原始 |S| 和 real 的数值范围相差悬殊，加权时小项会被淹没。
 
@@ -2001,22 +1338,11 @@ real_c = (mag * cos(phase)) / mag^0.7 = mag^0.3 * cos(phase)
 
 #### SISNR 时域损失
 
-```python
-y_pred = torch.istft(pred_stft_real + 1j*pred_stft_imag, ...)
-y_true = torch.istft(true_stft_real + 1j*true_stft_imag, ...)
-y_true = torch.sum(y_true * y_pred, dim=-1, keepdim=True) * y_true / (...)
-sisnr = -torch.log10(torch.norm(y_true, dim=-1)**2 / (torch.norm(y_pred - y_true, dim=-1)**2 + 1e-8) + 1e-8).mean()
-```
+时域那一路则是在提醒模型：别只在频谱上“看起来像”，还要在波形层面“听起来像”。
 
-SISNR (Scale-Invariant Signal-to-Noise Ratio) 是时域上的指标：
+SISNR 的直觉可以理解成：目标语音越集中、残余误差越少，分数就越高；而且它不太受整体增益放大缩小的影响。
 
-$$
-\text{SISNR} = 10 \log_{10} \frac{\|s_t\|^2}{\|\hat s - s_t\|^2}
-$$
-
-其中 $s_t = \frac{\langle \hat s, s \rangle s}{\|s\|^2}$ 是 $\hat s$ 在 $s$ 方向上的投影。
-
-**"Scale-Invariant" 的含义**：如果你把 $\hat s$ 整体放大 10 倍，SISNR 不变。这避免了"网络学到的只是一个增益常数"。
+“Scale-Invariant”的意思是：如果你只是把整段输出统一放大或缩小，这个指标不会被轻易骗过去。
 
 **为什么时域和频域都要算？**
 
@@ -2076,9 +1402,7 @@ $$
 
 ### 7.8 关于 RIR：作者引入的"混响"成分
 
-```
-the clean speech is convolved with a randomly selected RIR
-```
+> the clean speech is convolved with a randomly selected RIR
 
 RIR = Room Impulse Response，房间冲激响应。把干净语音和 RIR 卷积，得到"在某个房间里录的"语音，然后再加噪。
 
@@ -2086,9 +1410,7 @@ RIR = Room Impulse Response，房间冲激响应。把干净语音和 RIR 卷积
 
 但作者把"去混响目标"限制为前 100 ms 的早期反射：
 
-```
-The training target is obtained by preserving the first 100 ms reflections.
-```
+> The training target is obtained by preserving the first 100 ms reflections.
 
 这是因为**完全去混响**会让语音听起来"干"和不自然——早期反射对人耳来说是"自然的"，只去除后期混响（迟回声）才是合理目标。
 
@@ -2120,24 +1442,14 @@ The training target is obtained by preserving the first 100 ms reflections.
 
 | 模式 | 输入 | 推理 | 延迟 |
 |:----:|:----:|:----:|:----:|
-| **离线**（infer.py） | 整段音频的 STFT，shape (1, 257, T, 2) | 一次性 forward | 等整段都到了才能开始 |
-| **流式**（gtcrn_stream.py） | 单帧 STFT，shape (1, 257, **1**, 2) | 每帧调用一次 forward | 每 16ms 出一帧 |
+| **离线** | 整段音频的 STFT，shape `(1, 257, T, 2)` | 一次性前向计算 | 等整段都到了才能开始 |
+| **流式** | 单帧 STFT，shape `(1, 257, 1, 2)` | 每帧调用一次 | 每 16 ms 出一帧 |
 
 流式推理的核心问题是：**网络的有些层依赖历史帧**。怎么把"依赖历史"变成"用缓存（cache）保存历史状态"？
 
 ### 8.2 三类需要缓存的层
 
-打开 [gtcrn_stream.py:306](../../third_party/gtcrn/stream/gtcrn_stream.py#L306)，看 `StreamGTCRN` 的接口：
-
-```python
-def forward(self, spec, conv_cache, tra_cache, inter_cache):
-    """
-    spec: (B, F, T, 2) = (1, 257, 1, 2)
-    conv_cache: [en_cache, de_cache], (2, B, C, 8(kT-1), F) = (2, 1, 16, 16, 33)
-    tra_cache: [en_cache, de_cache], (2, 3, 1, B, C) = (2, 3, 1, 1, 16)
-    inter_cache: [cache1, cache2], (2, 1, BF, C) = (2, 1, 33, 16)
-    """
-```
+把流式版本的接口抽象出来，它通常会显式接收三类 cache：卷积历史帧、TRA 的隐藏状态、Inter-RNN 的隐藏状态。
 
 3 类缓存：
 
@@ -2153,13 +1465,7 @@ def forward(self, spec, conv_cache, tra_cache, inter_cache):
 
 #### 离线训练时怎么做？
 
-回顾第 4 章，离线训练时 GT-Conv 用 `F.pad` 在时间维左侧填充：
-
-```python
-# gtcrn.py:145
-h1 = nn.functional.pad(h1, [0, 0, self.pad_size, 0])
-h1 = self.depth_act(self.depth_bn(self.depth_conv(h1)))
-```
+回顾第 4 章，离线训练时，这件事等价于“在时间轴左侧补足历史，再做当前卷积”。
 
 对 kernel=3、dilation=5 的卷积，pad_size = 10。
 
@@ -2171,76 +1477,23 @@ h1 = self.depth_act(self.depth_bn(self.depth_conv(h1)))
 
 解决方法：**显式保存历史帧作为 cache**。
 
-```
-时刻 t=0：cache = [pad, pad]（初始化）
-         输入 frame[0]
-         网络看到 [cache[0], cache[1], frame[0]] = [pad, pad, frame[0]]
-         更新 cache = [pad, frame[0]]
-         输出 enh[0]
-
-时刻 t=1：cache = [pad, frame[0]]
-         输入 frame[1]
-         网络看到 [cache[0], cache[1], frame[1]] = [pad, frame[0], frame[1]]
-         更新 cache = [frame[0], frame[1]]
-         输出 enh[1]
-
-...
-```
+可以直接配合 `FIG-09` 来理解这个过程：启动时 cache 里全是 `pad`，随后每来一帧，就把当前帧压入 FIFO，把最老的一帧弹出。这样卷积每次看到的都是**历史帧窗口 + 当前帧**。
 
 这就是 **conv_cache** 的逻辑——它是一个 FIFO 队列，保存最近的 `(kernel_size - 1) * dilation` 帧。
 
 #### 看 StreamConv2d 的实现
 
-打开 [gtcrn_stream.py:9](../../third_party/gtcrn/stream/gtcrn_stream.py#L9)：
+流式卷积一般会封装成独立模块，但抽象逻辑其实都一样。
 
-```python
-from modules.convolution import StreamConv2d, StreamConvTranspose2d
-```
-
-这个 StreamConv2d 来自 `third_party/gtcrn/stream/modules/convolution.py`。我们看一下它的核心逻辑（基于 stream/gtcrn_stream.py 的调用方式可以推断）：
-
-```python
-# gtcrn_stream.py:143-161 StreamGTConvBlock.forward
-def forward(self, x, conv_cache, tra_cache):
-    """
-    x: (B, C, T, F)
-    conv_cache: (B, C, (kT-1)*dT, F)
-    tra_cache: (1, B, C)
-    """
-    x1, x2 = x[:,:x.shape[1]//2], x[:, x.shape[1]//2:]
-
-    x1 = self.sfe(x1)
-    h1 = self.point_act(self.point_bn1(self.point_conv1(x1)))
-    h1, conv_cache = self.depth_conv(h1, conv_cache)   # ← 关键：传入并更新 cache
-    h1 = self.depth_act(self.depth_bn(h1))
-    h1 = self.point_bn2(self.point_conv2(h1))
-
-    h1, tra_cache = self.tra(h1, tra_cache)            # ← TRA 也带 cache
-
-    x = self.shuffle(h1, x2)
-    return x, conv_cache, tra_cache
-```
+它的核心逻辑其实不复杂，本质上就是“取出历史 cache、和当前帧一起算、再把最新状态写回去”。
 
 `StreamConv2d` 的接口签名是 `(x, conv_cache) → (out, new_cache)`。每次推理时把 cache 拼接到输入前面做卷积，然后更新 cache。
 
-伪代码：
+如果写成过程语言，流式卷积每一步都只做三件事：
 
-```python
-def StreamConv2d_forward(self, x, cache):
-    # x: (B, C, 1, F)      当前一帧
-    # cache: (B, C, K-1, F)  历史 K-1 帧
-    
-    # 拼接历史
-    full_input = torch.cat([cache, x], dim=2)   # (B, C, K, F)
-    
-    # 标准卷积（不需要 padding，因为 full_input 长度恰好等于 kernel）
-    out = F.conv2d(full_input, self.weight, ...)  # (B, C, 1, F)
-    
-    # 更新 cache：去掉最早一帧，加入当前帧
-    new_cache = torch.cat([cache[:, :, 1:], x], dim=2)  # (B, C, K-1, F)
-    
-    return out, new_cache
-```
+1. 取出历史帧；
+2. 拼上当前帧，算出当前输出；
+3. 丢掉最老一帧，把当前帧塞回缓存。
 
 #### cache 大小的计算
 
@@ -2252,22 +1505,11 @@ def StreamConv2d_forward(self, x, cache):
 | 2 | 2 | 4 |
 | 3 | 5 | 10 |
 
-总共 2+4+10 = 16 帧，对应代码里：
-
-```python
-conv_cache: (B, C, 8(kT-1), F) = (2, 1, 16, 16, 33)
-```
+总共就是 `2 + 4 + 10 = 16` 帧缓存。
 
 第一个 `2` 是 encoder/decoder 各一份；`16` 是总缓存帧数。
 
-注意编码器和解码器都需要 cache（因为解码器的 GT-DeConv 也有 dilation）。代码里通过 slicing 把同一个大 tensor 分给三层：
-
-```python
-# gtcrn_stream.py:261-263
-x, conv_cache[:,:, :2, :], tra_cache[0] = self.en_convs[2](x, conv_cache[:,:, :2, :], tra_cache[0])
-x, conv_cache[:,:, 2:6, :], tra_cache[1] = self.en_convs[3](x, conv_cache[:,:, 2:6, :], tra_cache[1])
-x, conv_cache[:,:, 6:16, :], tra_cache[2] = self.en_convs[4](x, conv_cache[:,:, 6:16, :], tra_cache[2])
-```
+工程上通常会把多层 cache 集中装进一个固定形状的大张量里，再按层切片分配出去，这样更适合部署接口。
 
 切片 `[:2]`、`[2:6]`、`[6:16]` 对应三层 dilation 不同的 cache。这种"集中管理 cache"的方式对 ONNX 导出特别友好——只需要传一个固定 shape 的张量。
 
@@ -2283,12 +1525,7 @@ x, conv_cache[:,:, 6:16, :], tra_cache[2] = self.en_convs[4](x, conv_cache[:,:, 
 
 总元素数 = 2 × 1 × 16 × 16 × 33 = **16,896 个浮点数**，约 66 KB（FP32）。
 
-加上 `tra_cache` 和 `inter_cache`：
-
-```python
-tra_cache: (2, 3, 1, B, C) = (2, 3, 1, 1, 16) = 96 floats = 0.4KB
-inter_cache: (2, 1, BF, C) = (2, 1, 33, 16) = 1056 floats = 4.2KB
-```
+再加上 TRA 和 Inter-RNN 的状态，整体 cache 大小仍然很小。
 
 **所有 cache 加起来约 70 KB**——这对耳机的 RAM（通常几 MB）来说是可以接受的。
 
@@ -2298,12 +1535,7 @@ inter_cache: (2, 1, BF, C) = (2, 1, 33, 16) = 1056 floats = 4.2KB
 
 #### 离线 vs 流式的差异
 
-离线时，TRA 的 GRU 处理整段序列：
-
-```python
-# gtcrn.py:88
-at = self.att_gru(zt.transpose(1,2))[0]  # (B, T, 2C)
-```
+离线时，TRA 的 GRU 会一次性看完整段时间序列。
 
 输入 `(B, T, C)`，输出 `(B, T, 2C)`——GRU 内部从 t=0 跑到 t=T-1，自动管理隐藏状态。
 
@@ -2311,46 +1543,20 @@ at = self.att_gru(zt.transpose(1,2))[0]  # (B, T, 2C)
 
 #### StreamTRA 的修改
 
-[gtcrn_stream.py:78](../../third_party/gtcrn/stream/gtcrn_stream.py#L78)：
-
-```python
-class StreamTRA(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        self.att_gru = nn.GRU(channels, channels*2, 1, batch_first=True)
-        self.att_fc = nn.Linear(channels*2, channels)
-        self.att_act = nn.Sigmoid()
-
-    def forward(self, x, h_cache):
-        """
-        x: (B,C,T,F)
-        h_cache: (1,B,C)
-        """
-        zt = torch.mean(x.pow(2), dim=-1)
-        at, h_cache = self.att_gru(zt.transpose(1,2), h_cache)  # ← 传入 cache
-        at = self.att_fc(at).transpose(1,2)
-        at = self.att_act(at)
-        At = at[..., None]
-        return x * At, h_cache
-```
+如果把 TRA 改成流式版本，最关键的变化只有一个：**原来隐含在 GRU 里的状态，现在必须显式拿出来、传进去、再接回来。**
 
 关键改动：
 
-1. `self.att_gru(zt.transpose(1,2))` → `self.att_gru(zt.transpose(1,2), h_cache)` 显式传入初始隐藏状态
-2. 返回值多了 `h_cache`
+1. 每次推理都要显式传入上一次留下来的隐藏状态；
+2. 本次计算结束后，还要把新的隐藏状态带出去。
 
-PyTorch 的 `nn.GRU` 原本就支持传入 `h_0`——这个能力在离线训练时被忽略（不传就用零初始化），流式时显式利用起来。
+也就是说，离线时由框架内部自动延续的状态，到了流式部署阶段，就变成了调用方手动维护的状态。
 
 #### 6 个 TRA 的 cache 怎么管理
 
 3 层 encoder GT-Conv + 3 层 decoder GT-Conv = 6 个 TRA。每个 TRA 一份 GRU cache `(1, B, C) = (1, 1, 8)`。
 
-代码里把它们组织成 `(2, 3, 1, 1, 8)`——和 conv_cache 的组织方式一致。
-
-```python
-# gtcrn_stream.py:325
-tra_cache: [en_cache, de_cache], (2, 3, 1, B, C) = (2, 3, 1, 1, 16)
-```
+工程上通常也会把多个 TRA 的状态集中管理，避免部署接口变得很碎。
 
 （注意这里实际上是 `(2, 3, 1, 1, 16)` 因为 GRU 输出维度是 2C=16，但隐藏状态维度也是 16。原作者参数命名稍有混乱，但 shape 是对的。）
 
@@ -2363,31 +1569,9 @@ tra_cache: [en_cache, de_cache], (2, 3, 1, B, C) = (2, 3, 1, 1, 16)
 - **Intra-frame RNN**：在每一帧内沿 F 跑。**每一帧独立处理**，不需要跨帧 cache。
 - **Inter-frame RNN**：沿 T 跑。**必须 cache 跨帧的隐藏状态**。
 
-[gtcrn_stream.py:210](../../third_party/gtcrn/stream/gtcrn_stream.py#L210)：
+同理，DPGRNN 的 inter-frame 路径也需要显式缓存；而 intra-frame 因为每帧独立做频率扫描，所以不需要跨帧状态。
 
-```python
-def forward(self, x, inter_cache):
-    """
-    x: (B, C, T, F)
-    inter_cache: (1, BF, hidden_size)
-    """
-    ## Intra RNN - 不改
-    # ...
-    
-    ## Inter RNN - 显式传入 cache
-    x = intra_out.permute(0,2,1,3)
-    inter_x = x.reshape(x.shape[0] * x.shape[1], x.shape[2], x.shape[3])
-    inter_x, inter_cache = self.inter_rnn(inter_x, inter_cache)  # ← cache 传入
-    # ...
-    
-    return dual_out, inter_cache
-```
-
-#### 注意 Inter cache 的 shape
-
-```python
-inter_cache: (1, BF, hidden_size) = (1, 33, 16)
-```
+#### 注意 Inter cache 的含义
 
 为什么是 `BF`？因为 inter RNN 的 batch 维包括了所有频点——每个频点独立有一份隐藏状态。33 个频点 × 16 维隐藏状态 = 528 个值。
 
@@ -2409,17 +1593,9 @@ inter_cache: (1, BF, hidden_size) = (1, 33, 16)
 
 ### 8.7 BN 在流式部署中的处理
 
-[gtcrn_stream.py:122](../../third_party/gtcrn/stream/gtcrn_stream.py#L122)：
+卷积块里的 BatchNorm 在流式部署中也不需要特殊改写。
 
-```python
-self.point_bn1 = nn.BatchNorm2d(hidden_channels)
-```
-
-BatchNorm 在训练时统计 running mean / var，推理时用这两个值做归一化。**流式时不需要额外处理**——只要把 model 设成 `eval()` 模式：
-
-```python
-stream_model = StreamGTCRN().to(device).eval()
-```
+BatchNorm 在训练时统计运行均值和方差，推理时直接使用这些固定统计量；所以只要进入推理模式，它就天然兼容流式执行。
 
 然后 BN 就会用训练阶段统计的 running statistics 做归一化，**和当前帧的内容无关**，所以流式天然兼容。
 
@@ -2427,18 +1603,9 @@ stream_model = StreamGTCRN().to(device).eval()
 
 ### 8.8 离线到流式的权重转换
 
-[gtcrn_stream.py:359](../../third_party/gtcrn/stream/gtcrn_stream.py#L359)：
+一个比较优雅的工程做法是：训练时使用离线结构，部署前再把权重映射到流式结构上。
 
-```python
-from modules.convert import convert_to_stream
-
-model = GTCRN().to(device).eval()
-model.load_state_dict(torch.load('onnx_models/model_trained_on_dns3.tar', map_location=device)['model'])
-stream_model = StreamGTCRN().to(device).eval()
-convert_to_stream(stream_model, model)
-```
-
-`convert_to_stream` 这个函数（在 modules/convert.py 里）把离线模型的权重逐一拷贝到流式模型对应的模块上。**网络参数完全一样**——只是 forward 的计算方式变了。
+权重转换函数会把离线模型的参数逐一拷贝到流式模型对应模块上。**网络参数本身不变**，改变的只是推理时的状态管理方式。
 
 这意味着：**你训练时不需要管"流式不流式"**，正常训练就行。只在推理时切换到 StreamGTCRN。这是一个非常优雅的设计——训练和部署的解耦。
 
@@ -2446,28 +1613,7 @@ convert_to_stream(stream_model, model)
 
 ### 8.9 ONNX 导出：让模型真的能跑在端侧
 
-代码 [gtcrn_stream.py:399](../../third_party/gtcrn/stream/gtcrn_stream.py#L399)：
-
-```python
-"""ONNX Conversion"""
-import onnx
-import onnxruntime
-from onnxsim import simplify
-
-file = 'onnx_models/gtcrn.onnx'
-input = torch.randn(1, 257, 1, 2, device=device)
-torch.onnx.export(stream_model,
-                  (input, conv_cache, tra_cache, inter_cache),
-                  file,
-                  input_names=['mix', 'conv_cache', 'tra_cache', 'inter_cache'],
-                  output_names=['enh', 'conv_cache_out', 'tra_cache_out', 'inter_cache_out'],
-                  opset_version=11,
-                  verbose=False)
-
-onnx_model = onnx.load(file)
-model_simp, check = simplify(onnx_model)
-onnx.save(model_simp, file.replace('.onnx', '_simple.onnx'))
-```
+导出 ONNX 时，一般会把 cache 也一起做成显式输入输出，让外部调用方负责状态回传。
 
 几个值得注意的点：
 
@@ -2475,28 +1621,21 @@ onnx.save(model_simp, file.replace('.onnx', '_simple.onnx'))
 
 ONNX 是个**无状态**的格式——它没有"隐藏状态"的概念。所有需要在调用间保持的状态，都必须显式作为输入输出。
 
-所以 ONNX 接口签名是：
-
-```
-inputs:  mix, conv_cache, tra_cache, inter_cache
-outputs: enh, conv_cache_out, tra_cache_out, inter_cache_out
-```
+所以 ONNX 这里的核心思想是：模型本身无状态，但所有需要跨调用保存的状态，都必须显式跟着输入输出一起走。
 
 调用方负责在两次推理之间把 `*_out` 传回作为下次的 `*` 输入。
 
-#### opset_version=11
+#### ONNX 版本选择
 
-opset_version 是 ONNX 算子集的版本号。11 是个相对老的版本，但对应的 runtime（如 onnxruntime、TensorRT、CMSIS-NN）支持最广泛。
+ONNX 的算子版本一般会选一个偏保守、兼容面更广的版本，这样更利于端侧落地。
 
 **实战经验**：如果你要在嵌入式设备上跑，opset 越低越好（更多算子被支持）。GTCRN 选 11 是个保守但稳的选择。
 
-#### onnx-simplifier
+#### 图简化
 
-```python
-model_simp, check = simplify(onnx_model)
-```
+导出后通常还会再做一次图简化，删掉冗余节点，减少部署成本。
 
-`onnx-simplifier` 会做常量折叠、删除冗余节点等优化。对手写的 PyTorch 模型导出的 ONNX 来说，simplify 之后通常能砍掉 10-30% 的算子节点，对推理速度有显著提升。
+图简化工具会做常量折叠、删除冗余节点等优化，目的是把部署图进一步变瘦。
 
 ### 8.10 实测性能：RTF = 0.07
 
@@ -2518,9 +1657,9 @@ RTF (Real-Time Factor) = 推理时间 / 音频时长。RTF = 0.07 意味着**处
 
 如果你要把 GTCRN 部署到自己的项目，要按这个顺序做：
 
-1. **训练离线版本**（直接用 gtcrn.py + loss.py）
-2. **跑因果性测试**：[gtcrn.py:330](../../third_party/gtcrn/gtcrn.py#L330) 那段测试，确保没有偷看未来
-3. **转换到流式版本**（convert_to_stream）
+1. **训练离线版本**
+2. **跑因果性测试**，确保没有偷看未来
+3. **转换到流式版本**
 4. **测离线 vs 流式输出一致性**：用同一段音频跑两遍，差异应该 < 1e-5
 5. **导出 ONNX + simplify**
 6. **在目标平台上 benchmark**（耳机 SoC、手机、PC...）
@@ -2539,7 +1678,7 @@ RTF (Real-Time Factor) = 推理时间 / 音频时长。RTF = 0.07 意味着**处
 3. 送入 StreamGTCRN，得到增强谱
 4. ISTFT：和上一帧的输出做 OLA 拼接，输出 256 个增强后的采样点
 
-这套 STFT/ISTFT 流式管线在 GTCRN 的 stream/ 目录下 **没有完整实现**，需要自己写。可以参考 sherpa-onnx 或 LADSPA plugin 的实现（README 提到了）。
+这套 STFT/ISTFT 的端到端流式管线，通常还需要结合你自己的音频框架单独实现。
 
 ### 8.13 这一章的小结
 
@@ -2649,15 +1788,15 @@ GTCRN 的因果性体现在：
 
 任何一处疏忽（比如某层 BN 用了 batch stats，或者某个 pooling 跨了时间维），整个模型就不 causal。
 
-**自动化检查**：作者写了一个因果性测试 [gtcrn.py:330](../../third_party/gtcrn/gtcrn.py#L330)，这种测试应该**纳入 CI**。每次改完模型都跑一遍。
+**自动化检查**：这种因果性测试应该**纳入 CI**。每次改完模型都跑一遍。
 
 #### 原则 6：训练/推理解耦
 
 GTCRN 的代码结构有一个非常优雅的设计：
 
-- `gtcrn.py`：离线版本，用于训练
-- `gtcrn_stream.py`：流式版本，用于部署
-- `modules/convert.py`：权重转换工具
+- 离线版本：用于训练
+- 流式版本：用于部署
+- 权重转换工具：负责把离线权重映射到流式结构
 
 **训练时不需要管流式**——网络写法就是"看整段输入输出整段"，简单直观，loss 容易写。
 
@@ -2680,13 +1819,11 @@ GTCRN 的代码结构有一个非常优雅的设计：
 
 **养成"消融驱动开发"的习惯**：
 
-```
-1. 设计一个新模块 M
+1. 设计一个新模块 `M`
 2. 训练 baseline 模型
-3. 加 M 训一个版本
-4. 消融对比 PESQ/STOI/SISNR
+3. 加 `M` 再训练一个版本
+4. 对比 `PESQ / STOI / SISNR`
 5. 决定保留还是砍掉
-```
 
 不要"我感觉这个 trick 应该有用"——感觉是不可靠的。
 
@@ -2694,9 +1831,9 @@ GTCRN 的代码结构有一个非常优雅的设计：
 
 GTCRN 的代码非常干净：
 
-- 每个类一个清晰职责（ERB, SFE, TRA, GRNN, GTConvBlock, DPGRNN, Encoder, Decoder, Mask）
+- 每个模块一个清晰职责
 - 一个文件 350 行就把所有逻辑写完
-- 命名直接（point_conv1, depth_conv, intra_rnn, inter_rnn）
+- 模块命名和职责映射关系清楚
 
 **这反映了作者本身的设计思路就很清晰**。看作者代码，比看论文更能学到设计思维——因为代码不能藏锅。
 

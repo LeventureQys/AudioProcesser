@@ -11,6 +11,12 @@ GTCRN 文章配图生成脚本
   FIG-07  SFE 操作示意            (第六章)
   FIG-08  TRA 模块流程            (第六章)
   FIG-09  流式 Cache 更新机制     (第八章)
+  FIG-10  设计目标分解图          (第一章)
+  FIG-11  GTCRN 详细数据流        (第二章)
+  FIG-12  ERB 三角滤波器示意      (第三章)
+  FIG-13  Grouped GRU 权重结构    (第五章)
+  FIG-14  CRM 复数掩码作用过程    (第七章)
+  FIG-15  混合损失组成示意        (第七章)
 
 每张图右下角带 [FIG-XX] 标识，方便文章和外部引用追踪。
 """
@@ -729,6 +735,232 @@ def fig09_stream_cache():
 
 
 # ─────────────────────────────────────────────────────────────
+def fig10_design_strategy():
+    fig, ax = plt.subplots(figsize=(12, 6.5))
+    ax.set_xlim(0, 12)
+    ax.set_ylim(0, 6.5)
+    ax.axis('off')
+    ax.set_title('GTCRN 设计目标分解：先砍计算，再把能力补回来',
+                 fontsize=13, weight='bold', pad=10)
+
+    rounded_box(ax, 4.0, 5.2, 4.0, 0.8,
+                '目标：23.7K 参数 + < 50M MACs/秒\n且性能显著优于 RNNoise',
+                COLOR_OUT, 10, 'bold')
+
+    rounded_box(ax, 0.7, 3.3, 2.6, 1.0, '输入太大\n怎么压？', COLOR_INPUT, 11, 'bold')
+    rounded_box(ax, 4.7, 3.3, 2.6, 1.0, '网络太重\n怎么砍？', COLOR_PROC, 11, 'bold')
+    rounded_box(ax, 8.7, 3.3, 2.6, 1.0, '性能会掉\n怎么补？', COLOR_ATTN, 11, 'bold')
+
+    arrow(ax, 6.0, 5.2, 2.0, 4.3)
+    arrow(ax, 6.0, 5.2, 6.0, 4.3)
+    arrow(ax, 6.0, 5.2, 10.0, 4.3)
+
+    rounded_box(ax, 0.4, 1.2, 3.2, 1.1, 'ERB BM/BS\n低频保真，高频合并\n对应第 3 章', '#BBDEFB', 10)
+    rounded_box(ax, 4.4, 1.2, 3.2, 1.1, 'Grouped Conv / Grouped RNN\nDilated Conv\n对应第 4-5 章', '#FFE0B2', 10)
+    rounded_box(ax, 8.4, 1.2, 3.2, 1.1, 'SFE / TRA\n补频域上下文与时间注意力\n对应第 6 章', '#FFCDD2', 10)
+
+    arrow(ax, 2.0, 3.3, 2.0, 2.3)
+    arrow(ax, 6.0, 3.3, 6.0, 2.3)
+    arrow(ax, 10.0, 3.3, 10.0, 2.3)
+
+    ax.text(6.0, 0.35,
+            '核心思路：把 DPCRN 当骨架，用先验压缩 + 分组轻量化“砍”，再用小模块“补”。',
+            ha='center', fontsize=10, color='#37474F',
+            bbox=dict(boxstyle='round,pad=0.35', facecolor='#FFFDE7', edgecolor='#F9A825'))
+
+    add_fig_id(ax, 'FIG-10')
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTDIR, 'fig10_design_strategy.png'),
+                bbox_inches='tight', facecolor='white')
+    plt.close()
+    print('  ✓ FIG-10  设计目标分解')
+
+
+def fig11_overall_flow_detail():
+    fig, ax = plt.subplots(figsize=(13, 10))
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 11.5)
+    ax.axis('off')
+    ax.set_title('GTCRN 详细数据流：从输入 STFT 到增强谱输出',
+                 fontsize=13, weight='bold', pad=10)
+
+    items = [
+        ('输入 STFT\n(B, 257, T, 2)', COLOR_INPUT),
+        ('特征工程\n[mag, real, imag]\n(B, 3, T, 257)', COLOR_PROC),
+        ('ERB BM\n高频 192 点 → 64 带\n(B, 3, T, 129)', COLOR_PROC),
+        ('SFE\n邻近 3 频带堆到通道\n(B, 9, T, 129)', '#FFCCBC'),
+        ('Encoder\n2 层下采样 + 3 层 GT-Conv\n(B, 16, T, 33)', COLOR_PROC),
+        ('DPGRNN ×2\nIntra(F) + Inter(T)\n(B, 16, T, 33)', COLOR_RNN),
+        ('Decoder\n3 层 GT-DeConv + 2 层上采样\n(B, 2, T, 129)', COLOR_PROC),
+        ('ERB BS\n(B, 2, T, 257)', COLOR_PROC),
+        ('Complex Mask\n乘回原谱', COLOR_OUT),
+        ('增强 STFT\n(B, 257, T, 2)', COLOR_OUT),
+    ]
+
+    y = 10.3
+    for idx, (label, color) in enumerate(items):
+        rounded_box(ax, 4.1, y, 4.8, 0.75, label, color, 9.5, 'bold' if idx in (0, 9) else 'normal')
+        if idx < len(items) - 1:
+            arrow(ax, 6.5, y, 6.5, y - 0.35)
+        y -= 1.0
+
+    ax.text(10.6, 6.0,
+            '5 条 skip connection\n在 Encoder / Decoder 对应层做 add',
+            ha='center', fontsize=9.5, color='#F9A825',
+            bbox=dict(boxstyle='round,pad=0.35', facecolor='#FFF8E1', edgecolor='#F9A825'))
+
+    for y0 in [6.3, 5.3, 4.3, 3.3, 2.3]:
+        ax.annotate('', xy=(8.9, y0), xytext=(10.0, y0),
+                    arrowprops=dict(arrowstyle='-|>', color='#F9A825', lw=1.1, linestyle='--'))
+
+    add_fig_id(ax, 'FIG-11')
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTDIR, 'fig11_overall_flow_detail.png'),
+                bbox_inches='tight', facecolor='white')
+    plt.close()
+    print('  ✓ FIG-11  详细数据流')
+
+
+def fig12_erb_triangles():
+    fig, ax = plt.subplots(figsize=(11, 4.5))
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 1.4)
+    ax.set_yticks([])
+    ax.set_xticks([1, 3, 5, 7, 9])
+    ax.set_xticklabels(['bins[i-1]', 'bins[i]', 'bins[i+1]', 'bins[i+2]', '...'])
+    ax.set_title('ERB 滤波器组三角窗：相邻滤波器在频率轴上重叠',
+                 fontsize=13, weight='bold', pad=10)
+
+    xs1 = [1, 3, 5]
+    xs2 = [3, 5, 7]
+    ax.fill_between(xs1, [0, 1, 0], color='#90CAF9', alpha=0.7)
+    ax.plot(xs1, [0, 1, 0], color='#1976D2', lw=2)
+    ax.fill_between(xs2, [0, 1, 0], color='#FFCC80', alpha=0.7)
+    ax.plot(xs2, [0, 1, 0], color='#EF6C00', lw=2)
+
+    ax.text(3, 1.08, 'Filter i', ha='center', fontsize=11, color='#1565C0', weight='bold')
+    ax.text(5, 1.08, 'Filter i+1', ha='center', fontsize=11, color='#E65100', weight='bold')
+    ax.text(5, 0.2,
+            '每个 ERB 频带 = 一组 FFT bin 的加权平均\n相邻滤波器通过三角窗重叠，避免频带边界突变',
+            ha='center', fontsize=9.5, color='#37474F',
+            bbox=dict(boxstyle='round,pad=0.35', facecolor='#FFFDE7', edgecolor='#F9A825'))
+    ax.grid(axis='x', alpha=0.25)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    add_fig_id(ax, 'FIG-12')
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTDIR, 'fig12_erb_triangles.png'),
+                bbox_inches='tight', facecolor='white')
+    plt.close()
+    print('  ✓ FIG-12  ERB 三角窗')
+
+
+def fig13_grouped_gru_matrix():
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 5.5))
+    fig.suptitle('标准 GRU vs Grouped GRU：全连接矩阵与块对角矩阵',
+                 fontsize=13, weight='bold')
+
+    dense = np.ones((10, 10))
+    block = np.zeros((10, 10))
+    block[:5, :5] = 1
+    block[5:, 5:] = 1
+
+    for ax, data, title in [
+        (ax1, dense, '标准 GRU\n所有输入与隐藏维度互相连接'),
+        (ax2, block, 'Grouped GRU\n只保留组内连接（块对角）'),
+    ]:
+        ax.imshow(data, cmap='Blues', vmin=0, vmax=1)
+        ax.set_title(title, fontsize=11)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+    ax1.text(0.5, -0.12, '参数多，但表达最充分', transform=ax1.transAxes,
+             ha='center', fontsize=9.5, color='#1565C0')
+    ax2.text(0.5, -0.12, '参数减半，组间信息交给后续 FC 混合', transform=ax2.transAxes,
+             ha='center', fontsize=9.5, color='#1565C0')
+
+    add_fig_id(ax2, 'FIG-13')
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTDIR, 'fig13_grouped_gru_matrix.png'),
+                bbox_inches='tight', facecolor='white')
+    plt.close()
+    print('  ✓ FIG-13  Grouped GRU 权重结构')
+
+
+def fig14_crm_process():
+    fig, ax = plt.subplots(figsize=(12, 5.5))
+    ax.set_xlim(0, 12)
+    ax.set_ylim(0, 5.5)
+    ax.axis('off')
+    ax.set_title('CRM 复数掩码：不是重建新谱，而是对原谱做复数修正',
+                 fontsize=13, weight='bold', pad=10)
+
+    rounded_box(ax, 0.6, 2.2, 2.5, 1.0, '带噪复数谱 X\n实部 + 虚部', COLOR_INPUT, 10, 'bold')
+    rounded_box(ax, 3.8, 2.2, 2.5, 1.0, '网络输出掩码 M\n实部 + 虚部', COLOR_ATTN, 10, 'bold')
+    rounded_box(ax, 7.0, 2.2, 2.5, 1.0, '复数乘法\n同时修幅度与相位', COLOR_PROC, 10, 'bold')
+    rounded_box(ax, 10.0, 2.2, 1.5, 1.0, '增强谱 Ŝ', COLOR_OUT, 10, 'bold')
+
+    arrow(ax, 3.1, 2.7, 6.8, 2.7)
+    arrow(ax, 6.3, 2.7, 6.8, 2.7)
+    arrow(ax, 9.5, 2.7, 10.0, 2.7)
+
+    ax.text(2.0, 4.0, '原始语音信息还在', ha='center', fontsize=9.5, color='#1565C0')
+    ax.text(5.05, 4.0, '网络只学“该怎么改”', ha='center', fontsize=9.5, color='#C62828')
+    ax.text(8.2, 4.0, '比直接预测干净谱更稳定', ha='center', fontsize=9.5, color='#EF6C00')
+
+    ax.text(6.0, 0.7,
+            '直觉上：CRM 像一个二维旋钮，一边调强弱，一边调相位方向；\n所以它比只改幅度的 mask 更强，也比直接从零生成整张谱更容易训练。',
+            ha='center', fontsize=10, color='#37474F',
+            bbox=dict(boxstyle='round,pad=0.35', facecolor='#FFFDE7', edgecolor='#F9A825'))
+
+    add_fig_id(ax, 'FIG-14')
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTDIR, 'fig14_crm_process.png'),
+                bbox_inches='tight', facecolor='white')
+    plt.close()
+    print('  ✓ FIG-14  CRM 复数掩码过程')
+
+
+def fig15_hybrid_loss():
+    fig, ax = plt.subplots(figsize=(12.5, 6))
+    ax.set_xlim(0, 12.5)
+    ax.set_ylim(0, 6)
+    ax.axis('off')
+    ax.set_title('混合损失：幅度、压缩复数域、时域听感三路一起约束',
+                 fontsize=13, weight='bold', pad=10)
+
+    rounded_box(ax, 0.6, 4.0, 2.2, 1.0, '增强 STFT', COLOR_OUT, 10, 'bold')
+    rounded_box(ax, 0.6, 1.4, 2.2, 1.0, '目标 STFT', COLOR_INPUT, 10, 'bold')
+
+    rounded_box(ax, 3.5, 4.3, 2.4, 0.8, '幅度分支\n比较能量包络', '#FFE0B2', 9.5, 'bold')
+    rounded_box(ax, 3.5, 2.7, 2.4, 0.8, '复数分支\n比较压缩后的实部/虚部', '#F3E5F5', 9.2, 'bold')
+    rounded_box(ax, 3.5, 1.1, 2.4, 0.8, '时域分支\nISTFT 后比较整体听感', '#E1F5FE', 9.5, 'bold')
+
+    rounded_box(ax, 7.0, 2.2, 2.5, 1.3, '加权汇总\n主看幅度\n辅看复数细节\n再加时域约束', COLOR_PROC, 10, 'bold')
+    rounded_box(ax, 10.4, 2.4, 1.5, 0.9, '总损失', COLOR_ATTN, 10, 'bold')
+
+    for y in [4.4, 2.8, 1.2]:
+        arrow(ax, 2.8, y, 3.5, y)
+        arrow(ax, 5.9, y, 7.0, 2.85)
+    arrow(ax, 9.5, 2.85, 10.4, 2.85)
+
+    ax.text(6.2, 5.2, '为什么不用单一损失？', fontsize=10, weight='bold', color='#37474F')
+    ax.text(6.2, 4.75,
+            '单看幅度会忽略相位；单看复数域可能不够贴近听感；单看时域又不够稳定。',
+            fontsize=9.5, color='#37474F')
+
+    add_fig_id(ax, 'FIG-15')
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTDIR, 'fig15_hybrid_loss.png'),
+                bbox_inches='tight', facecolor='white')
+    plt.close()
+    print('  ✓ FIG-15  混合损失组成')
+
+
+# ─────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     print('开始生成 GTCRN 文章配图...')
     print(f'输出目录：{OUTDIR}\n')
@@ -742,5 +974,11 @@ if __name__ == '__main__':
     fig07_sfe()
     fig08_tra()
     fig09_stream_cache()
+    fig10_design_strategy()
+    fig11_overall_flow_detail()
+    fig12_erb_triangles()
+    fig13_grouped_gru_matrix()
+    fig14_crm_process()
+    fig15_hybrid_loss()
 
-    print('\n全部完成。共 9 张图。')
+    print('\n全部完成。共 15 张图。')
