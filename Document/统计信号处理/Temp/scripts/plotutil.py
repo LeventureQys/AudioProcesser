@@ -57,9 +57,12 @@ _SKIP_ROLES = {"yticklabel", "xticklabel", "xlabel", "ylabel"}
 
 
 def _texts(ax):
-    """返回 [(text对象, role)]，role ∈ {annot, title, legend}。"""
+    """返回 [(text对象, role)]，role ∈ {annot, title, legend}。
+    空文本（annotate 纯箭头载体）不参与碰撞检测。"""
     out = []
     for t in ax.texts:
+        if not t.get_text():
+            continue
         out.append((t, "annot"))
     if ax.get_title():
         out.append((ax.title, "title"))
