@@ -1,0 +1,48 @@
+172
+第一卷：统计信号处理基础一一估计理论
+Fortran Program MONTECARLO
+MONTECARLO
+This program determines the asymptotic properties
+of the MLE for a N(A,A) PDF (see Examples 7.1-7.3, 7.5).
+The array dimensions are given as variable. Replace them
+with ntimerical values. To use this program you will need
+a plotting subroutine to replace PLoT and a random number
+generator to Ieplace the intrinsic function RaN in the
+subroutine RANDOM.
+DIMENSION X(N),W(N),AHAT(M) ,PDF(NCELLS),HIST(NCELLS)
+* ,XX(NCELLS)
+PI=4.*ATAN(1.)
+Iaput the value of A, the number of data points N, and the
+number of realizations M.
+WRITE(6,10)
+10
+FORMAT(′ INPUT A, N, AND M')
+READ(5,*)A,N,M
+Generate M realizations of the estimate of A.
+D0 40 K=1,M
+Generate the noise samples and add A to each one.
+CALL WGN(N,A,W)
+DO 20 I=1,N
+20
+(I)M+=(I)X
+Generate the estimate of A.
+XSQ=0.
+DO 30 I-1,N
+X$Q=XSQ+X(I)*X(I)/N
+AHAT(K)=-0.5+SQRT(XSQ+0.25)
+CONTINUE
+Compute the mean and variance of the estimates of A.
+CALL STATS(AHAT,M,AMEAN,AVAR)
+Normalize the variance by N.
+AVAR-N*AVAR
+WRITE(6,*)AMEAN,AVAR
+Input the interval (XHIN,XMAX) and the number of celis
+for the histogram.
+WRITE(6,50)
+50
+FORMAT( INPUT XMIN,XMAX,NCELLS FOR HISTOGRAM')
+READ(5,*)XMIN,XMAX,NCELLS
+Compute the histogram.
+CALEL HISTOG(AHAT,M,XMIN,XMAX,NCELLS,XX,HIST)
+Compute the asymptotic variance.
+SIG2=A*A/(N*(A+0.5))

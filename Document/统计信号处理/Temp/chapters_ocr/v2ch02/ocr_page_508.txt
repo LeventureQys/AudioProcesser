@@ -1,0 +1,46 @@
+附录2B
+正态概率纸
+493
+- Real column vector of x yalues for desired
+right-tail probabilities
+Qx
+- Real column vector of corresponding
+right-tail probabilities
+xlab - Label for x axis (enclose in single quotes)
+nor - 
+Set equal to 1 for Gaussian right-tail probability
+to be plotted for comparison, and O otherwise
+Verification Test Case:
+The inputs x=[-5:0.01:5j *;Qx=0.5*(x)+0.5*Q(x/sqit(2)) ;
+should produce Figure 2.4.
+Set up y-axis values.
+y[0.0001 0.001 0.01 0.1 0.3 0.5 0.7 0.9 0.99 0.999 0.9999];
+Set up x-axis limits.
+xmax=qinv(min(y));
+Warp y values for plotting.
+m=(2*min(y)-1)/(2*xmax);
+Y=m*Qinv(Qx)+0.5;
+Check to see if Q(x) (Gaussian right-tail probability)
+is to be plotted.
+if nor==1
+xnor=[-xmax:0.01 :xmax] * ;
+ynor=m*xnor+0.5;
+plot(x,Y,'-',xnor,ynor,'--')
+else
+plot(x,Y)
+xlabel(xlab)
+ylabel(ylab)
+axis([-xmax xmax min(y) max(y)});
+Determine y tick mark locations by warping.
+Ytick=m*Qinv(y)+0.5;
+Set up y axis labels.
+t=[*0.0001*;* 0.001':′
+0.01':*
+0.1*:*
+0.3';-
+0.5';..
+0.7';'0.9°;*
+0.99';* 0.999*;0.9999'1;
+set(gca,'Ytick',Ytick)
+set(gca,'Yticklabels',t)
+grid

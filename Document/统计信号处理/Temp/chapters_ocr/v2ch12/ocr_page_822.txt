@@ -1,0 +1,34 @@
+第 12章
+模型变化检测
+807
+第--级
+第二级
+路径
+ABCD
+AECD
+AEFD
+ABFD
+* AGFD
+AGHD
+AEHD
+*量佳璐路径
+图 12.5 
+列举的所有路径和它们的距离
+ABC
+AEC
+ABF
+AEFAGF
+AEH
+AGH
+AECD
+AGFD*
+AEHD
+消除路径
+墩佳路径
+图 12,6
+搜索最佳路径的动态规划
+为了在A和Ⅱ上使（12.12)式最小，我们首先注意到，对于给定的变化时刻有
+n;-1
+[n]
+ni -ni-1
+n二ni-l

@@ -1,0 +1,26 @@
+附录 2B
+正态概率纸
+为了构造正态概率纸，使Q（x)以一条直线出现，我们首先选择垂直轴的范。-一般我们
+选择间隔[0.0001,0.9999],纵轴用11，2，..，1标记,其中=0.0001,=0.9999, L
+选择奇数,y:=1-yi.+1-i,所以 y(1.+1>2=0.5。对于 MATTAB程序,I.=11,有
+y = [0.0001 0.001 0.01 0.1 0.3 0.5 0.7 0.9 0.99 0.999 0.9999]
+横轴选择的范围为间隔［－Q~（），Q-（）,如图2.11所示。为了使=Q（×)以一条直线
+出现，我们必须将的值扭曲为Y=mQ-（y:）+1/2,从图2.11可以求出斜率m为
+2y1 - 1
+m :
+2Q-1(1)
+为了画出点（x，）,我们将它转换为（x，Y）=（x:，mQ-1（y:）+1/2），为了得到真实的值
+（扭曲前）,我们在Y:=mQ-（y:）+1/2做一个标记，但仍将它们记为y:。下面列出的MATLAB
+程序plotpmb.m在正态概率纸上画出了右尾概率。如果有要求，也可以画出高斯右尾概率
+Q(x)以用于比较。
+Q(T)
+0.5
+斜率=
++ yi = 1 -r.
+(f)-0 = xtur
+图2.11正态概率纸的构造
+function plotprob(x,Qx,xlab,ylab,nor)
+This program plots a set of right-tail probabilities
+(complementary cumulative distribution function) on normal
+probability paper.
+Iput Parameters:

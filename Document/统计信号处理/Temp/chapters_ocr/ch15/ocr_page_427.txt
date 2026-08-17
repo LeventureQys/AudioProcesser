@@ -1,0 +1,43 @@
+412
+第一卷：统计信号处理基础一-估计理论
+E(Q2)
+ E(xHAxHAx)
+i=l j=l
+k=1 (=1
+ZZZZ[A]i[A]hE(;)
+=1=1=1=
+利用四阶矩的性质（15.24）式，我们有
+E(c,)
+E()E()+ E()E(E)
+[CT [CTk + [CT]n[CT ]kj
+因此，
+E(Q?) -
+ZZZ[A]; [C ][A[CT ]k]
+i==1==1
++Z[Ali[A]k(CTla(CT]kj
+i ==1[=l
+ZZ[CT], [A], ZZ[CT ] [A]!
+i=1 j=1
++MM
+Z[A],(CT]ki
+(3=1
+(15.28)
+但是
+tr(BTA) = tr
+其中，a;、b：分别为A和B的第i列。更明确地说这将变成
+tr(BTA)
+bfa --
+ZZ[B]i[A] =
+ZZ(Bg[Ali3
+i=l j=1
+i=l j=1
+所以(15.28)式中的第--项刚好是-tr（C,A)或者t（AC,），也就是其均值平方。令D=
+AC，则第二项为
+ZZ[D]; [D]  - ZZ[DT] x:[D]ki
+i=1 k=1
+=l i=1
+即为
+tr(DD) = tr(ACAC)
+所以最后对于~CN(0,C,)以及A为 Hermitian型,我们有
+E(xHAx) = tr(ACa)
+(15.29)

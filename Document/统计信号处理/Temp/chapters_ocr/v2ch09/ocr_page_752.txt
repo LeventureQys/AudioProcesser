@@ -1,0 +1,50 @@
+第9章未知噪声参数
+737
+0.9
+0.8
+0.7
+0.6
+检测摄率, PD
+0.4
+0.3
+Rao 检验*
+0.2
+配滤波器
+0.1
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+虚警概率, PrA
+图9.9
+接收机工作特性的比较
+参考文献
+Bickel, P.J., K.A. Doksum, Mathernaticat Statistics, Hoiden-Day, San Francisco.
+1977.
+Glisson, T.H., C.I. Black, A.P. Sage, “On Sonar Signal Analysis," IEEE Trans.
+Aero. Elect. Syst, Vol. AES-6, pp. 37-50, Jan. 1970.
+Kay, S., "Asymptotically Optimal Detection in Unknown Colored Noise via Au-
+toregressive Modeling,' IEEE Trans. Acoust., Speech, Signat Processing, Vol.
+ASSP-31, pp.927-939, Aug.1983.
+Kay, S.. V. Nagesha, "Maximum Likelihood Estimation of Signals in Autoregres-
+sive Noise," IEEE Trmns. Acoust., Speech, Signai Processing, Vol. AsSP-4l.
+pp. 88-101, Jan. 1994.
+Kay, S.M., Modern Spectral Estimation: Theory and Application, Prentice-Hall,
+Englewood Cliffs, N.J., 1988.
+Kendall, Sir M., A. Stuart, The Aduanced Theory of Statistics, Vol. 1, Macmillan,
+New York, 1976.
+Rihaczek, A.W., Principles of High-Resolution Radar, Peninsula Pub., Los Altos,
+Calif., 1985.
+Scharf, L.L., B. Friedlander, "Matched Subspace Detectors," IEEE Trans. Signa!
+Proccssing. Vol. 42, Pp. 2146-2157, Aug. 1994.
+Van Trees, H.L., Detection, Estimation, and Modutatian, Part III, J. Wiley, New
+York, 1971.
+习题
+9.1具有个自出度的学生用t.表示)PDF定义为
+8VV81
+v+1

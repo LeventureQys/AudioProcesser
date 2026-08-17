@@ -1,0 +1,55 @@
+554
+第二卷：统计信号处理基础
+检测理论
+是不满足的。而且，一个像素的黑色边框是我们将图像边缘任意分类成黑色的判决结果。这是
+因为对于这些像素，所有邻近的像素都是无效的。如果我们把窗口的尺寸增加到5×5，那么正如
+图4.20所看到的那样噪声误差会减少。然而，由于块之间的边界是2～3个像素，所以边缘误差
+增加了。很显然，为了得到较好的“噪声平滑”，窗口应该大一点；但是，为了提取好的边缘，窗口
+应该小一一点。在实际中，应该在两个矛盾的要求中进行折表。
+50
+45
+40
+35
+08
+25
+20
+15
+10
+10
+15
+20
+25
+30
+35
+40
+45
+50
+图4.19
+用3×3窗口分类的图像
+50
+45
+40
+35
+30
+25
+20
+15
+10
+10
+15
+20
+25
+30
+35
+40
+45
+50
+图4.20
+用5×5窗口分类的图像
+参考文献
+Cover, T.A.. J.A. Thomas, Elements of Information Theory, J. Wiley. New York,
+1991.
+Fukunaga, K., Introduction to Statistical Pattern Recognition, 2nd ed., Academic
+Press, New York, 1990.
+Kendall, Sir M., A. Stuart, The Advanced Theory of Statistics, Vol. 2, Macmillan.
+New York, 1979.

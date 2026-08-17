@@ -1,0 +1,42 @@
+第13章复失量扩展及阵列处理
+859
+在均匀间隔线阵的特殊情况下，我们有nm（β）=－md/c△)cosβ。由（13.56)式可得波束
+形成为
+M-1
+Sb(ft)
+m=0
+Xm(fi)exp(-j2rfsm)
+m=0
+M-1N-1
+MM
+am[n] exp[-j2(fsn + fin)]
+m=0 n=0
+(13.60)
+它是基于2D数据集m［n]的比例2D离散傅里叶变换，其中f.=（F,△+f）dc△)cosB是空
+域频率，f为时域频率。
+在实际中，F，和β是未知的,因此GLRT必须在这些参数上最大化。另外，观测间隔W的
+长度通过假定信源的平稳性来确定：其他的实际考虑可以参见［Knight，Pridham，aidKay
+1981] 
+参考文献
+Graybill, F.A., Matrires with Applicatios in Statistirs, Wadsworth, Pacific Grove,
+Ca., 1969.
+Hannan, E..J. Muitiple T'ime Series, J. Wiley, New York. 1970.
+Kay, S.M.. Modern Spectral Estimation: Theory and Application, Prentice-Hall.
+Englewood Cliffs, N.J., 1988.
+Knight, W.S., R.G. Pridharn, S.M. Kay, *Digital Signal Processing for Sonar,'
+Prot. 1EEE, Vol. 69, Pp. 1451-1506.Nov. 1981.
+Robinson, E.A., Multichannet Time Series Analysis urith Digitat Computer Pro.
+grams, Holden-Day, San Francisco, Ca. 1967.
+Van Trees, H.L.. "A Unifed Theory for Optimum Array Proccssing," Rcport No.
+4160866, Arthur D. Little, Inc., Cambridge, Mass.. A1gust 1966.
+Van Trees, H.L., Detection, Estimation, and Modulation Theory, Vol. III, J. Wiley,
+New York, 1971.
+习题
+13.1
+在具有方差为²的CWGN中,根据x［n]n=0,，·，N～1)检测复正弦信号［n]=
+Aexp(j2fan）：如果A和f.已知，确定NP检测器（包括门限)及其性能。
+13.2
+T(x) = Re
+Zh[n - k][k]
+=0
+n=N-1

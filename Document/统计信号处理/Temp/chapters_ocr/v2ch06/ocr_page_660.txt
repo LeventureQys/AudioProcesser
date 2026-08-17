@@ -1,0 +1,29 @@
+附录6F广义ML准则的推导
+645
+E[tr(x - μ)TC-1(x -μ)
+E[(× - μ)TC-1(x - u)) 
+E[tr(x - μ)(x - μ)TC-1)
+tr[E(x - μ)(x - u)T)C-1)
+tr(I) = ni
+因此，我们应该选择C。.来满足（6F.5)式的约束。将（6F.2)式和（6F.4)式代人（6F.3)式中，得
+P(x|;, Hi)
+p(x[H)
+p(x;,H)(2) det [((:) +Ca)
+(2) det2(Ce.)
+P(xo, Hi)
+det
+[Co. (1(0.) + Cal)]
+p(x0;, Hi)
+det:(Co.) det: (1(o)
+取对数,得
+In p(x|Hi) = n p(x[8, Ha) -  ln det(1(9;) -- , In det(C
+由（6F.5)式，上式变成
+Inp(xH) = lnp(x:, H) -
+ In det(I(0) + c +
+In 2re
+忽略常数c，（n,/2)ln2e随着N的增大相对于其他项也很小，因此也可以忽略。于是我们有
+5 = In p(x|H:) = In p(x2i, Ha) - , In det(I(8:)
+尽管广义ML准则是对：在贝叶斯假定下推导的，但它在经典的情况下也是可以应用的，
+所以
+Ss = Inp(x;0;He) - Indet(I()
+其中是MLE,或者是使p(x;,IH:)最大的值。

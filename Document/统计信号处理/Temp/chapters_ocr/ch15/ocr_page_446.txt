@@ -1,0 +1,40 @@
+第15章复数据和复参数的扩展
+431
+N-1
+X(fx) = Z [n) exp(-j2fun)
+n=()
+其中,对于=0,1，···，N-I,有f/N。我们首先求DFT系数X(f)的PDF,然后变换回到
+［π]以得到PDFp(;号）。DFT用矩阵形式表示为
+X = Ex
+其中,X-[X(fa)X(f)..X(f-)],[E］=exp(- j2rfin)。如果用 U= E/N对 E进行归
+一化,则X=VNU,我们注意U为矩阵，即 U=U-1。接下来，由于X为线性变换的结
+果,则X也为复高斯的且具有零均值和协方差矩阵 NUC,U"。例如,如果x是 CWGN,所以 C
+二I则X将具有PDF
+X ~ CN(0, Cx)
+其中
+Cx = NU?IUH = Nα"I
+读者可能希望与例15.3中的结果做比较，以便确定协方差矩阵不同的原因。一般来说，为了
+求DFT系数的协方差矩阵,我们考虑C，的第［，]个元素或者E[X(f）X*（f)]。因为DFT
+为周期性的,且周期为 N,我们可以将它重写为（N为偶数)
+X(fr) = Z [njexp(-j2fun)
+那么，
+-1
+E[X(f)X*(f0)]
+E(r[m]a*[nl) exp [-j2r(frm - fin)]
+nm-号
+-1
+M.M.
+ri[m - n]exp[-j2r(frm - fin)]
+令i=m-n，我们有
+-1
+m+
+E[X(fx)X*()) =
+T[]exp(-2 fr)
+exp[-j2(f - ft)m]
+m=- Li=m-(号-1)
+但是，当 N→α时,括号中的项趋向于 PSD,或者说对于大的 N,有
+E[X(ft)X*(f)] α
+exp[-j2(f - ft)m) P-(fr)
+由复指数的正交性，我们有
+E[X(k)X*(f)] ~ NPr-(fx)Okl
+因此,近似有

@@ -1,0 +1,36 @@
+第一卷统计信号处理基础一估计理论
+2.7
+扩展到矢量参数
+如果=8,2...,是未知参数矢量,那么，一且估计量=［,2.,对于
+1,2,...,P)满足
+E(0)  8:
+(2.7)
+我们就说它是无偏的：通过定义
+E(0)
+E(02)
+可以将无偏估计等效地定义为：在(2.7)式的定义中,包含在括号内的每一个具有下列性质
+E(0) = 
+MVU也具有附加的性质,那就是在所有的无偏估计量中，对于i（i=1,2，·.·，p），var(.)是最
+小的。
+参考文献
+Bibby, J., H. Toutenburg, Prediction and Improued Estimation in Linear Modeis, J. Wiley, New
+York, 1977.
+Rao, C.R., Linear Statisticat Inference and Its Applications, J. Wiley, New York, 1973.
+Stoica, P., R. Moses, “On Biased Estimators and the Unbiased Cramer-Rao Lower Bound," Signal
+Process., Vol. 21, pp. 349-350, 1990.
+习题
+2.1 x
+观测数据为［O]，［，··，［-1]，其中［n］是独立同分布的（ID)，且服从
+N(0,）,利用下式估计方差,即
+N-1
+Z[m]
+这是无偏估计吗？求的方差，考察当N-→会发生什么情况？
+2.2
+考虑数据{[0],「1]，，·，[N-1],其中每个样本服从u[0,],且样本是ID,能求出
+的无偏估计量吗？6的范围是0<<8。
+2.3
+证明在例2.1给出的A的PDF是N（A，/N)。
+2.4
+病人的心率 h由计算机每隔100 ms自动记录。对1内的测量lh,，hz，..·,h。1求平
+均,以得到：对于某个常数α,如果E（h）=αh,并臣对每个i,var(h）=1,确定求平均
+的方法是否改善了估计量（如果α=1和α=1/2)。假定每个测量是不相关的。

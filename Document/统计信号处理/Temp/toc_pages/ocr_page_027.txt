@@ -1,0 +1,45 @@
+12
+第一卷：统计信号处理基础
+估计理论
+代数将使主要概念模糊化的趋势。最后，我们首先描述经典的估让，然后是贝叶斯估计，这
+样做也是为了不使主要的概念嗨涩难懂。使用这样两种方法得到的估计量尽管在表面上是类
+似的，但是在基本概念.上则是不问的。
+所有常见符号的数学表示将归纳在附录2十，连续时间波形和离散时间波形或者时间序
+列之间是通过符号x（t)和［]加以区别的，x（)表示连续时间，x［n1表示离散时间。然而，
+x[n］的图形是以时间连续形式出现的，为了更容易查看，其中的点用直线相连。所有的矢量
+和矩阵都使用粗体字，所有的矢量都是列矢量，其他符号都将在本书中出现的位置加以定义。
+参考文献
+Box, G.E.P., G.M. Jenkins, Time Series Anaiysis: Forecasting and Controi, Holden-Day, San
+Francisco, 1970.
+Burdic, W.S., Underwater Acoustic Systen Anaiysis, Prentice-Hall, Englewood Cliffs, N.J. 1984.
+Cox, D.R., D.V. Hinkley, Theoretical Statistics, Chapman and Hali, New York, 1974.
+Dabbous, T.E., N.U. Ahmed, J.C. McMillan, D.F. Liang, "Filtering of Discontinuous Processes
+Arising in Marine Integrated Navigation," lEEE Trans. Aerosp. Electron. Syst., Vol. 24,
+pp. 85-100, 1988.
+Gauss, K.G., Theory of Motion of Heaveniy Bodies, Dover, New York, I963.
+Holm, S., J.M. Hovem, “Estimation of Scalar Ocean Wave Spectra by the Maximur Entropy
+Method,"1EEE J.Ocean Eng.,Vol.4, Pp.76-83,1979.
+Huber, P.J., Robust Statistics, J. Wiley, New York. 198l.
+Jain, A.K., Fundamentals of Digital Image Processing, Prentice-Hall, Englewood Cliffs, N.J., 1989.
+Justice, J.H.,"Array Processing in Exploration Seismojogy" in Array Signal Processing, S. Haykin.
+ed.,Prentice-Hall,EnglewoodCliffs,N.J..1985.
+Kendall, Sir M., A. Stuart. The Advanced Thcory of Statistecs, Vols. 1 3. Macmillan, New York,
+1976-1979.
+Knight, W.S., R.G. Pridham, S.M. Kay, "Digital Signal Processing for Sonar," Proc. IEEE, Vol.
+69, pp. 1451-1506, Nov. 1981.
+Proakis, J.G., Digital Communications, McGraw-Hill, New York, 1983.
+Rabiner, L.R., R.W. Schafer, Digital Processing of Speech Signais, Prentice-Hall, Engiewood Cliffs,
+N.J., 1978.
+Rao, C.R., Linear Statistical Inference anid Its Applications, J. Wiley, New York, l973.
+Schuster, A., "On the Investigation of Hidden Periodicities with Application to a Supposed 26 Day
+Period of Meterological Phenomena," Terrestrial Magnctism, Vol. 3, Pp. 13 4l, March 1898.
+Skoinik, M.I., Introduction to Radar Systems, McGraw-Hill, New York, 1980.
+Taylor,S.,ModelingFinanciat Time Series, J.Wiley,New York,1986.
+Widrow, B., Stearns, S.D., Adaptive Signal Processing, Prentice-Hall, Englewood Cliffs, N.J., 1985.
+Zacks, S., Panametric Statisticat Inference, Pergamon, New York, 1981.
+习题
+1.1 2
+假如要估计距离，请提出一种估计量R，并求它的PDF。然后，确定标准偏差。，使得距
+离估计值的99%在真值的100m以内，对电磁传播速度取c=3×10°m/s
+1.2一个未知参数影响一个随机试验的结果，这个随机试验可以看作为随机变量x。x的
+PDF 为

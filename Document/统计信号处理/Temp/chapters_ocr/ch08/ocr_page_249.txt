@@ -1,0 +1,35 @@
+附录 8B
+递推投影矩阵的推导
+我们现在推导（8.34)式所给出的投影矩阵的递推更新：因为
+H+1Dk+IH+:
+其中D+1=（H+,H+）,我们可以利用附录8A所推导的D,的更新。因此,我们有
+D.HThk+1hT+1H,Dk
+D,HThk+1
+Dr -
+ht+,P+h#+1
+ht++P+h*+1
+HT
+Pk+1[ Hhk+1
+h+, HD.
+h+P+hk+1
+hT+,P+hk+!
+H,D,HThk+hi+,H,DH!
+H.D,H +
+h+IP+ h++1
+H,D,HTh*+h+!
+h++P+h+1
+h*+Ih+HD.H
+h*+tht+1
+h+++P+h++1
+h+P+h*+1
+P+h*+ih#+1
+P+hs+ihi+1Ps
+P- +
+h++P+ha+I
+h+,P+h++1
+hk+h$+Pk
+h+ Pho+1
+h+++P+h*+!
+(1 - Pz) h*+h+ (I - Pz)
+Pk:
+hT++P+h*+1

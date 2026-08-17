@@ -1,0 +1,41 @@
+附录 12B
+动态规划的MATLAB程序
+for determining the three change times of a signal that
+consists of four unknown Dc 1evels in WGN (see Figure 12.4).
+The Dc levels and change times are unknon.
+clear all
+Generate data
+randn('seed',0)
+A=[1;4;2;6l ;varu=1;sig-sqrt(varw) ;
+x[sig*randn(20,1)+A(1); sig*randn(30,1)+A(2) ; . 
+sig*randn(15, 1)+A(3) ; sig*randn(35,1)+A(4)l ;
+N=length(x) ;
+Begin DP algorithm
+Since MATLAB cannot accomnodate matrix/vector indices of zero,
+augment L,k,n by one when necessary.
+Initialize Dp algorithm
+for L=0:N-4
+LL=L+1:
+I(1,LL)=(x(1 : LL)-mean(x(1:LL))) +(x(1:LL)-mean(x(1: LL))) :
+end
+% Begin Dp recursions
+for k=1:3
+kk=k+1 ;
+if k<3
+for L-k:N-4+k
+LL=L+1;
+Load in large number to prevent minimizing value of J
+to occur for a value of J(l:k), which is ot computed
+J(1:k)-10000*0nes(k,1);
+Compute least squares error for all possible change times
+for n=k:L
+nn-n+1 ;
+Del=(x(nn:LL)-mean(x(nn:LL)))**(x(nn:LL)-mean(x(rn:LL))) :
+J(nn)=I(kk-1,nn-1)+Del;
+Determine minimum of least squares error and change time that
+yields the minimum
+[I(kk,LL),ntrans(L,k)J =min(J(1:LL));
+pue
+else
+% Final stage computation
+L=N-1;LL-L+1; J(1 :k)=10000*0ues(k,1) ;

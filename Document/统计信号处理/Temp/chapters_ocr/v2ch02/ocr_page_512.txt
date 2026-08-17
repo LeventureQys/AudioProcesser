@@ -1,0 +1,42 @@
+附录 2D 
+计算中心化和非中心化X2的右尾概率
+497
+为了确定求和要求多少项,我们首先选择 M+1项，使得截断误差小于。为了求出 M，
+由（2D.1)式，我们有
+exp(->/2)(>/2)*
+V+2k
+k=M+1
+但是 Qxz+（x)<1,所以
+exp(->/2)(>/2)*
+(/2)k
+exp(-^/2)(>/2)h
+k!
+k=1
+(0/2)
+K!
+k=0
+为了保证误差小于M，对于给定的和^，我们要求
+(0/2)k
+> exp(-^/2)(1 - e)
+(2D.2)
+t=0
+从(2D.2)式可以求得M值。
+Qchipr2 . m
+function P-Qchipr2(nu,lambda,x,epsilon)
+This program computes the right-tail probability
+of a central or noncentral chi-squared PDF.
+Input Parameters:
+nu
+ Degrees of freedom (1,2,3,etc.)
+1ambda
+= Noncentrality paraneter (must be positive),
+set  0 for central chi-squared PDF
+ Real scalar value of random variable
+epsilon = maximum allowable error (should be a small
+number such as 1e-5) due to truncation of the
+infinite sum
+Output parameters:
+ right-tail probability or the probability that
+the random variable exceeds the given value
+(1 - CDF)
+Verification Test Case:

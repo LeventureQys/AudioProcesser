@@ -1,0 +1,44 @@
+附录3D
+渐近CRLB的推导
+67
+HH"）,即
+(2n) det(?HHT)
+又,
+2N
+det(oHHT) - α2N det2(H) = α3
+而且,
+xT(αHHT)-1x :
+(H-x)
+所以
+p(x; 9)
+exp
+(3D.3)
+(202)
+根据(3D.2)式，近似地可以有
+X(f) = H()U()
+其中
+N-1
+X(f)
+[n]exp(--j2fn)
+n=0
+N-1
+U(f)
+u[nl exp(-j2fn)
+是截断序列的傅里叶变换。由 Parseval 定理，
+N-1
+u[n]
+n=0
+[U(f)Idf
+[X()]2
+H(f)2
+(x(0)12
+df
+(3D.4)
+Prn(f)
+又,
+Inot
+df
+P(f)
+IH()2
+In Pra(f) df --
+InH()IPf

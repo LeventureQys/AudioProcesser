@@ -1,0 +1,19 @@
+附录 2D
+计算中心化和非中心化X的右尾概率
+499
+arg=(exp(-lambda/2)*(1ambda/2)*k)/prod(1:k) :
+P=P+arg*Q2p :
+end
+else
+If nu=i, the k=0 term is just Qchi2_1(x)=2Q(sqrt(x)).
+Add the k=0 and k=1 terms.
+P=P+exp(-lambda/2)*(1ambda/2)*Q2p:
+Compute remaining terms.
+for k=2:M
+m=nu+2*k;
+g=g*x/(m-2); Q2p=Q2p+g:
+arg=(exp(-lambda/2)*(lambda/2)^k)/prod(1:k) ;
+P=P+arg*Q2p:
+end
+end
+end

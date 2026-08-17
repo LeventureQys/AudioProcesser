@@ -1,0 +1,45 @@
+第二卷：统计信号处理基础
+658
+一检测理论
+N-1
+≤[n] cos 2 fon
+n=0
+N-1
+r[n] sin 2 fon
+02
+T=0
+N-1
+T(x)
+cos (2nfon +g)
+(a)未知幅度
+N-1
+n=0
+I (o)
+a[n]
+cos 2n fon
+N-1
+n=0
+sin 2 for!
+正交匹配滤波器
+N- 1
+(o)
+0=u
+Ho
+exp(-32fon)
+周期图
+(b)末知幅度和相位
+N-1
+I(fe)
+在吊上选择
+最大值
+exp(-j2xfon)
+(c)未知幅度、相拉和频率
+o+ M- 1
+Ing tfo?
+在，n上
+选择最大值
+n=no
+exp(-j2 fon)
+W-NSOuSD
+(d）未知幅度、相位、频率和到达时间
+图7.5检测正弦信号的GLRT

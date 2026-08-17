@@ -1,0 +1,39 @@
+52
+第一卷：统计信号处理基础一一估计理论
+息矩阵求逆，我们有
+var(a[k])
+k = 1,2,...,P
+(3.45)
+201
+var(α2)
+作为一个例证,如果P二 1,
+var(a[1] ≥ Nr[0]
+但是
+[]z0 - I = [0] 
+所以
+上式表明，当111靠近1时，估计滤波器的参数要比靠近0时容易。由于滤波器的极点
+是一α[1],这意味着更容易估计具有尖峰PSD的过程的滤波器参数(参见习题3.20)。
+参考文献
+Box, G.E.P., G.M. Jenkins, Time Series Anatysis: Forecasting and Control, Holden-Day, San
+Frallcisco, 1970.
+Brockwell, P.J., R.A. Davis, Time Series: Theory and Methods, Springer-Verlag, New York, 1987.
+Kay, S.M., Modern Spectral Estimation: Theory and Application, Prentice-Hall, Englewood Cliffs,
+N.J., 1988.
+Kendall, Sir M., A. Stuart, The Advanced Theory af Statistics, Vol. 2, Macmillan, New York, 1979.
+Makhoul, J., "Linear Prediction: A Tutorial Review," IEEE Proc., Vol. 63, Pp. 561-580, April
+1975.
+McAulay, R.J., E.M. Hofstetter, "Barankin Bounds on Parameter Estimation," IEEE Trans. Irt-
+form, Theory, Vol. 17, pp. 669-676, Nov. 1971.
+Porat, B., B. Friedlander, "Computation of the Exact Information Matrix of Gaussian Time Series
+With Stationary Random Components," IEEE Trans. Acoust., Speech, Signai Process., Vol.
+34, Pp. 118-130, Feb. 1986.
+Porat, B., B. Friedlander, "The Exact Cramer-Rao Bound for Gaussian Autoregressive Processes,"
+IEEE Trans. Aerosp. Electron. Syst., Vol. 23, pp. 537-541, July 1987.
+Seidman, I..P., "Performance Iimitations and Errnr Calculations for Parameter Estimation," Proc.
+IEEE, Vol. 58, pp. 644-652, May 1970.
+Stoica, P., R.L. Moses, B. Friedlander, T. Soderstrom, "Maximum Likelihood Estimation of the
+Parameters of Multiple Sinusoids from Noisy Measurements," IEEE Trans. Acoust., Speech,
+Signut Process., Vol. 37, pp. 378-392, March 1989.
+Van Trees, H.L., Detection, E'stimation, and Modulation Theory, Part I, J. Wiley, New York, 1968.
+Ziv, J., M. Zakai, "Some Lower Bounds on Signal Parameter Estirnation," IEEE Trans. Inform
+Theory, Vol. 15, Pp. 386-391, May 1969.

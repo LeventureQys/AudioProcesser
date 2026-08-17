@@ -1,0 +1,49 @@
+第 12章
+模型变化检测
+817
+0.1
+-0.1
+-0.2
+-0.3
+0.4
+估计的a[]]
+0.5
+-0.6
+-0.7
+-0.8
+10
+20
+30
+40
+50
+60
+70
+80
+90
+图 12.11
+估的AR(1)滤波器参数
+参考文献
+Basseville, M., I.V. Nikiforov, Detection of Abrupt Changes: Theory and Applica-
+tian, Prentice-Hall, Englewood Cliffs, N.J. 1993.
+Bellman, R., S. Dreyfus, Applied Dynamic Programming, Princeton Univ. Press,
+Princeton, N.J., 1962.
+Birdsall, T.G., J.O. Gobien, "Suficient Statistics and Reproducing Densities in
+Simultaneous Detection and Estimation," IEEE Trans. on Info. Theory, Vol.
+IT-19, PP. 760-768, 1973.
+Kay, S.M., Modern Spectral Estimation: Theory and Application, Prentice-Hall,
+Englewoori Cliffs, N.J., 1988.
+Larson, R.E., J.L. Casti, Principles of Dynamic Prograrnming, Vol. I,I, Marcel
+Dekker, New York, 1982.
+Svendsen, F.K., F.K. Soong, "On the Automatic Segmentation of Speech Signals,"
+1987 Int. Conf. Acoust., Speech, and Signal Processing, Dallas, TX, Pp. 77.-
+80.
+习题
+12.1
+令（12.5)式的检验统计量表示为T［N－1],表明该统计量是基于数据记录［0,N-1]
+的。证明它可以通过求一个g使得 T［N]=TN-1］＋g［N],TEN～1]),即 TEN]
+可以随数据记录长度N的增加而序贯地计算。注意
+Z (r[nl - Ao)
+(12.23)
+T[N] = N-no+1
+12.2
+设信号为

@@ -1,0 +1,47 @@
+附录 7A
+蒙特卡洛方法
+173
+Coupute the asymptotic Gaussian PDF fot comparison to
+the histogram.
+D0 6O I=1,NCELLS
+ARG=(XX(I)-A)*(XX(I)-A)/SIG2
+IF(ARG.GT.50.)PDF(I)=O.
+IF(ARG.LT.50.)PDF(I)=(1./SQRT(2.*PI*SIG2))*EXP(-0.5*ARG)
+60
+CONTINUE
+Compare graphically the asymptotic PDF to the histogram.
+CALL PLOT(XX,HIST,PDF)
+STOP
+END
+SUBROUTINE STATS(X,N,XMEAN,XVAR)
+This program computes the sample mean and variance
+of a data set.
+Input parameters:
+- Array of dimesion Nxl containiag data
+- Number of data set
+Output parameters:
+XMEAN - Sample mean
+XVAR - Sample variance
+DIMENSION X(1)
+XMEAN=0.
+XSQ-0.
+DO 10 I=1,N
+XMEAN=XMEAN+X(I)/N
+10
+XSQ=XSQ+X(I)*X(I)/N
+XVAR=XSQ-XMEAN*XMEAN
+RETURN
+END
+SUBROUTINE HISTOG(X,N,XMIN,XMAX,NCELLS,XX,HIST)
+This subroutine computes a histogram of a set of data.
+Input Parameters:
+Input data array of dimension Nxl
+Number of data samples
+NIWX
+Minimum value for histogram horizontal axis
+XMAX
+Maximum value for histogram horizontal axis
+NCELLS
+Number of cells desired
+Array of dimension NCELLSxl containing
+cell centers

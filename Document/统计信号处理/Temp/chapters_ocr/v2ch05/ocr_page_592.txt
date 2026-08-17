@@ -1,0 +1,41 @@
+第5章随机信号
+577
+C, - HC,HT
+HIH  ,HHT  ［ho h
+No?
+ho.h
+No?
+hth
+2VN/2 VN/2
+VN/2 VN/2
+令。=，=N?/2,Vha/VN/2和 Vi=h,/VN/2,我们看到
+Cg = Aso VovT + AsI VIvi
+其中对于大的N,=（2/N)≥=cows2fansin2fon 0。这样、,近似为C。对应于
+特征值入。,的特征失量。由于C，的秩为2,所以剩下的 N-2个特征值是零。很容易
+验证,在(5.10)式中利用 入。= 入,= No,/2,入，=…As- 0,并且注意到(5. 13)式,可得
+PFA = Pr[T'(x) >";Ho} = Pr[T(x) >"; Ho)  exp
+200
+其中，
+No202 /2
+Aso + 02
+由于=cy"，那么可简化为
+PFA = exp
+(5.21)
+N-1
+=0
+a[n]
+T(x)
+cos 2nfon
+N-1
+Ho
+n= 0
+sin 2 fon
+（由）正交或非相干匹配滤波器
+N-1
+2[n]
+T(x)
+n=0
+exp(-j2n on)
+(b) 周期图检测器
+图5.6
+瑞利衰落正弦信号在高斯白噪声中的等效检测器

@@ -1,0 +1,38 @@
+第 2章重要 PDF 的总结
+485
+参考文献
+Abramowitz, M.. I.A. Stegul, Handbook of Mathematicat Functions, Dover Pub.,
+New York, 1970.
+Brockwell, P.J., R.A. Davis, Time Series: Theory and Methods, Springer-Verlag.
+New York, 1987.
+Fuller, W.A.. Introduction to Statistical Time Series, J. Wiley,New York, 1976.
+Gray, R.M. "On the Asynptotic Eigenvalue Distribution of Teplitz Matrices,"
+IEEE Trans. Inform. Theory, Vol. IT.-18, Pp. 725-730, Nov. 1972.
+Graybill, F.A., Matrices with Applications in Statistics, Wadsworth, California.
+1983.
+Johson, N.L., S. Kotz, N. Balakrishnan, Continuous Univariate Distributions,
+Vols. 1,2, J. Wiley, New York, 1995.
+Kay, S.M., Modern Spectral Estimation: Theory and Appticatior, Prentice-Hall,
+Englewood Cliffs, N.J., 1988.
+Kendall, Sir M.. A. Stuart, The Advanced Theory of Statistics, Vols. 1-3, Macmil
+lan, New York, 1976-.1979.
+McDonough, R.N., A.T. Whalen, Detection af Signals in Noise, Academic Press,
+New York, 1995.
+Mitchell, R.L., "Importance Sampling Applied to Simulation of False Alarm Statis-
+tics," IEEE Trans. Aerosp. Elect. Syst., Vol. AES-17, Pp. 15.-24, Jan. 1981.
+Mitehell, R.L., J.F. Walker, "Recursive Methods for Computing Detection Proba-
+1971.
+Patnaik, P.B., "The Non-central x?- and F- distributions and their applications,"
+Biometrka, Vol. 36, pp. 202-232, 1949.
+Rice, S.O.. "Statistical Properties of a Sinewave Plus Random Noise," Bell System
+Tech. Jour., Jan. 1948.
+习题
+2.1 证明如果 T-N(μ,α),那么
+Pr{T >}=
+2.2推导(2.4)式,注意
+texp
+dt
+/2元t
+且使用分步积分。另外，解释为付么随着x的增加，近似得到了改善。
+2.3
+证明,当v2→α时，F随机变量变成X,/，随机变量。

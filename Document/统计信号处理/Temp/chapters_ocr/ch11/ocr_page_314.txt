@@ -1,0 +1,56 @@
+第 11 章一般页叶斯估计量
+299
+10 -
+(a)信号和数据
+数据
+s[ni（虚线）
+inl【实线）
+信号
+-6 -
+-10 -
+10
+15
+20
+25
+30
+35
+40
+45
+50
+样本数，叶
+10 -
+(b)信号和信号估计
+19
+14
+信号6计
+[n]【虚线】
+【实线)
+真实信号
+-8-
+10
+10
+15
+20
+25
+30
+35
+40
+45
+样本数，刁
+图 11.10 
+维纳滤波器的子
+参考文献
+Haykin, S., Adaptiue Fiter Theory, Prentice-Hall, Englewood Cliffs, N.J., 1991.
+Jain, A.K., Fundamentals of Digital Image Processing, Prentice-Hall, Englewood Cliffs, N.J., 1989.
+Robinson, E.A, S. Treitel, Geophysical Signai Analysis, Prentice-Hall, Englewood Cliffs, N.J., 1980.
+Van Trees, H.L., Detection, Estimation, and Moduiation Theory, Part I, J. Wiley, New York, 1968.
+习题
+11.1
+观测到的数据α［n]（n=0,1，··.,N1)具有PDF
+p(a[n]μ)
+exp
+在u给定的条件下，α[n]是相互独立的。均值具有先验 PDF
+u ~ N(μo,)
+求 μ的 MMSE 和 MAP估计量。另外,当 ~→0 和α→α时将发生什么情况?
+11.2
+对于后验 PDF

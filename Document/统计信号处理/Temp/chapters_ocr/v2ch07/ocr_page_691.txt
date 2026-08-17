@@ -1,0 +1,53 @@
+676
+第二卷：统计信号处理基础
+检测理论
+Sc
+s[n] +?
+n=0
+N-1
+S:
+-Zs2[n] +s?
+(HTH)-1
+N--1
+82[n]
+所以
+- Sc Ss
+A(HTH)-1
+N-1
++ S2 - s[m]
+n=0
+N-1
+Za(n]s[n]
+n=0
+N-1
+Z a[n] cos 2n fin
+N-1
+ r(n] sin 2x fin
+n=0
+由此可得出
+ XH-(HH) = IV
+N-1
+IN-1
+N-1
+Ea[n] cos 2n fin ]
++Ss
+n=0
+n=0
+N-1
+S + S -  s[ml 
+R=0
+另外，
+A(HTH)-1AT =
+N-1
+S?+-s[n]
+n-0
+现在，我们定义在f二于计算的傅里叶变换，
+N-1
+S(fe)
+Z s[n] exp(-j2n fin) = S ~ jSs
+n=0
+N-1
+X(fi)
+Z r[nj exp(-j2 fin)
+0=1
+那么

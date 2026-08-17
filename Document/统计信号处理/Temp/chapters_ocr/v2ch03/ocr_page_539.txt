@@ -1,0 +1,30 @@
+附录3B
+最小贝叶斯风险检器
+一二元假设
+我们要使(3.17)式的R最小。注意,如果 Co= Ci =0,Co = Cio 1,那么R= P。,所以,我
+们的推导也可应用到使P，最小的间题。现在，
+R - EZCuP(H:IH,)P(H)
+i=0 j=0
+令R，=x：判H1「为判定域，R。表示它的补集（判H），那么
+R = CooP(Ho)
+p(x|Ho)dx + Co P(H1)
+p(x|H1)dx
+JRo
+Ro
++ CioP(Ho)
+p(x|Ho)dx + C11P(H1)
+p(x|H1)dx
+由于R，和R。划分整个空间，因此，
+p(x|Hi)dx = 1 --
+p(x|H;)dx
+J Ro
+J Rr
+我们有
+R = CoiP(Hi)+ CooP(Ho) +
+[(C10 P(Ho) - Coo P(Ho))p(x|Ho)
++ (C11P(Hi) - Cot P(H)p(x|Hi)) dx
+如果积分为负的，则x应包含在R，中，或者如果
+(C10 -- Coo)P(Ho)p(x)Ho) < (Co1 - C11)P(Hi)p(x|H1)
+我们判Hi。假定 Co>Co，Co>G,我们最终有
+p(×|H1)  (C1o - Coo)P(Ho)
+p(xjHo)  (Cor - Cn)P(H))

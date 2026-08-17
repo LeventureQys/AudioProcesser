@@ -1,0 +1,36 @@
+附录5A
+估计器一相关器的检测性能
+597
+N-1
+Φr(w) = E[exp(iwT)]  E
+exp
+n=0
+N-1
+N-1
+II E [exp(jwanz[n]
+n=0
+n=0
+T的PDF由特征函数的逆得到，或者
+dr(w) exp(-jwt)
+t≥0
+t<0
+由于 T≥0,因此对于 0,pr（）=0。现在 ［］～X,可以证明特征函数为[Johnson and Kotz
+1995]
+V1-23w
+这样，
+N-1
+=(m)
+n=0
+V1- 2janw
+其中
+Asn +g2
+所以
+ N-1
+exp(-jwt)
+dt
+V1- 2janw
+类似地，我们可以证明
+ N-1
+dt
+/1 - 2j入onw
+n=0

@@ -1,0 +1,38 @@
+第8章
+最小二乘估计
+225
+于是根据（8.62)式，我们有
+n sin(2 fo,n. + b) (r[n) -- cos(2 fo,n +Φ))
+4πM3
+sin(2 fon + ) (α[n) - cos(2fon +))
+化=-M
+或者由于
+sin(2 fo, n + pk) cos(2r fo n + ,)
+2M +1
+sin(4πfo,n+20)
+2(2M + 1)
+所以可得出
+nrin) sin(2nfox n +x)
+n=-M
++1
+r[n] sin(2 fon + @k)
+频率和相位的LSE能用锁相环来实现[Pmoakis 1983]、，在习题8.29中，可以证明对于足够
+高的SNR,收敛的解为
+for ~ fo
+@k+1
+参考文献
+Bard, Y., Nonutiriear Parameter Estimation, Academic Press, New York, l974.
+Graybill, F.A., Theory and Appicuian of the Lieur Model, Duxbury Press, North Scituate, Mass.
+1976.
+Kay, S.M., Modern Spectral Estimation: Theary and Apptication, Prentice-Hall, Fnglewaod Cliffs,
+N.J., 1988.
+Oppenheim, A.V., R.W. Schafer, Digital Signal Processing, Prentice-Hal, Englewood Cliffs, N.J..
+1975.
+Parks, T.W., C.S. Burrus, Digitat Filter Design, J. Wilcy, New York, 1987.
+Proakis, J.G., Digitat Communications, McGraw-Hil, New York, 1983.
+Scharf, L.L., Statistical Signal Processing, Addison-Wesley, New York, 1991.
+Seber, G.A.F., C.J. Wild, Nontinear Regression, J. Wiley, New York, 1989.
+Stoica, P., R.L. Moses, B. Friedlander, T., Soderstrom, "Maximum Likelihood Estimation of the
+Parameters nf Multiple Sinusoids from Noisy Measurements," lEEE Trans. Acoust., Speech,
+Signat Prot:ts.s.. Vol. 37, Pp. 378-392, March 1989.
+Widrow, B., S.D. Stearns, Adaptive Signat Processing, Prentice-Hall, Englewood Cliffs, N.J., 1985.

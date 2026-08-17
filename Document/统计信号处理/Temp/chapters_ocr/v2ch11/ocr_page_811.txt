@@ -1,0 +1,24 @@
+796
+第二卷：统计信号处理基础
+一检测理论
+Whalen 1995,Helstrom 1995]。从统计的观点对假设检验的更一般的讨论在[Lehmann 1959,Rao
+1973, Cox and Hinkley 1974, Graybill 1976, Kendall and Stuart 1976 - 1979,Zar:ks 198114可以找到。
+参考文献
+Cox, D.R., D.V. Hinkley: Theoretical Statistics, Chapman and Hall, New York.,
+1974.
+Graybill, F.A., Theory and Apptication of the Linear Modet. Duxbury Press. North
+Seituate, Mass.. 1976.
+Helstrom, C.W., Elements of Signal Detection and Estimation, Prentice-Hall, En-
+glewood Cliffs, N.J., 1995.
+Huber, P.J., Robust Statistics, J. Wiley, New York, 1981.
+Kendall, Sir M., A. Stuart, The Adwanced Theory of Statistics, Vols. 1 3, Macmil-
+lan, New York, 1976-1979.
+Lehnann, E.L, Testing Statistical Hypotheses, J. Wiley, New York, 1959.
+McDonough, R.N., A.D. Whalen, Detection of Signals in Nozse, Academic Press,
+New York, 1995.
+Rao, C.R., Linear Statisticat Inference and its Apphications, J. Wiley, New York,
+1973.
+Scharf, L.L, Statisticat Signal Processing, Addison-Wesley, Reading. Mass., 199l.
+Van Trees, H.L., Detection, Estination, and Modulation Theory, Vol. I, J. Wiley,
+New York, 1968.
+Zacks, S., Parametric Statistical Inference, Pergamon, New York, 198l.

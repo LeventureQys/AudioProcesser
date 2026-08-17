@@ -1,0 +1,39 @@
+164
+第一卷：统计信号处理基础一估计理论
+因为
+A(J)2I(f)df
+A()I(f)A*(J)df
+a[]
+A(f)I(f)exp(j2rfk)df
+k=0
+根据（7.的9)式，我们注意到除=0外，和式中的所有项均为零。可以得出（我们令在们=1)
+A(f)I)df
+Za[]
+I(f) exp(-j2rfk)df
+A-0
+Za[k][-]
+最后,MLE为
+=[0]+Za[][关]
+(7.70)
+k=1
+参考文献
+Bard, Y., Nontinear Parameter Estirnation, Academic Press, New York, l974.
+Bendat, J.S., A.G. Piersol, Random Data: Analysis and Measurement Prwcedures, J. Wiley, New
+York, 1971.
+Bickel, P.J., K.A. Doksum, Mathematical Statistics, Holden-Day, San Francisco, 1977.
+Dempstcr, A.P., N.M. Laird, D.B. Rubin, "Maximum Likelihood From Incomplete Data via the
+EM Algorithm," Ann. Roy. Statist. Soc., Vol. 39, Pp. 1-38. Dec. 1977.
+Dudewicz, E.J., Introduction to Probabitity and Statistics, Holt, Rinehart, and Winston, New York,
+1976.
+Feder, M., E. Weinstrcin, "Parameter Estimation of Superimposed Signals Using the EM Algo
+rithrn," IFFE Trans. Acoust., Speech, Sigmat Process., Vol. 36, pp. 477..489, April 1988.
+Hoel, P.G., S.C. Port, C.J. Stone, Introduction to Statistical Theory, Houghton Miflin, Boston,
+1971.
+Kay, S.M, Modern Spectrai Estimation: Theory and Application, Prentice-Hall, Englewood Cliffs,
+N.J., 1988.
+Rao, C.R. Linear Statistical Inference and Its Applications, J. Wiley, New York, 1973.
+Schwartz, M., L. Shaw, Signat Processing: Discrete Spectrai Analysis, Detection, and Estimation,
+McGraw-Hill,New York, 1975,
+习题
+7.1
+证明(7.2)式给出了例7.1中 A的CRLB。

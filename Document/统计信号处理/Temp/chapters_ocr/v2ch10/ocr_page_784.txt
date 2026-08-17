@@ -1,0 +1,51 @@
+第10章非高斯噪声
+769
+cesses," in Aduances in Spectru Analysis and Array Processing, Vol. I.
+Prentice-Hall, Englewood Cliffs, N.J., 1991.
+Middleton D., "Threshold Detection in non-Gaussian Interference Environments,"
+IEEE Trans. Electromagnet. Compat., Vol. EC-26, Pp. 19 -28, 1984.
+Ord, J.K., Families of Frequency Distributions, Grifin's Stat. Monographs and
+Courses, London, 1972.
+Poor, H.V., An Introduction to Signat Detection and Estimation, Springer-Verlag,
+New York, 1988
+习题
+10.1
+对于高斯PDF（参见（10.2）式）和拉普拉斯PDF（参见（10.1）式），分别确定随机变量
+w［n]超过3√²的概率，PDF"拖尾"是如何描述高电平事件的？
+10.2
+证明拉普拉斯型PDF的四阶矩函数为E（unl)=6c。提示：对于整数h及a>0,有
+I ° x*exp( - ax)dx = h! Ia*+1
+10.3
+画出 β= 0.5，-0.75,-0.99 及 ²=1时的广义高斯 PDF。当 β→-1 时,PDF 收敛到
+何值？
+10.4
+考虑检测问题
+Ho : x[n] = w[n]
+n  0,1,+..,N - 1
+Hi : [n] = A + w[n]
+ n=0,l,..-,N-1
+其中A已知，w［n]为IⅢD样本,满足Cauchy分布，
+P(w) =
+18AEA8
+(zm + T)= 
+确定 NP检验统计量,并画出非线性函数 g(）=n(p(=A)/p())A=1)的图形。
+对于检测问题
+10.5
+Ho : r[n] = w[n]
+n=0,1,...,N-1
+Hi : a[n] = As[n] + w[n] n = 0, 1, .. : , N - 1
+其中A已知且A>0，s［n]已知，win]是PDF为p（w［n])的IID非高斯噪声。证明LMP
+检测器与（10.10)式等价(相差一比例因子）。
+10.6
+证明：若噪离PDFp（）是偶函数,即（-w）=（）则g（）=（dp（)/dw)/p（w）
+为奇函数,即 g（-)= g(w)。
+10.7
+一高斯混合 PDF 为
+p(w) = 
+exp
+exp
+2 V2元g2
+随机变量的分布在一半时间内为N（0，1），另一半时间为N（0，α）。画出PDF和当
+g=1、α²=100时的非线性数 g（w）=－（d（w）/du)/p（）,并解释你的结论。
+10.8对于习题10.4的检测问题，确定A>0时弱信号的NP检验统计量，并描述检测器的
+运算过程。

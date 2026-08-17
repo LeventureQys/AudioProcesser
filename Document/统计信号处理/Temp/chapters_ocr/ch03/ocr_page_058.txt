@@ -1,0 +1,43 @@
+第3章
+Cramer-Rao 下 限
+43
+中。那么，由于=是标量，根据（3.34)式，我们有
+aln Prr(f: fe)
+af.
+但是
+8in Pr(f; fe)
+aln[Q(f  fe) + Q(-f - fe) +a2]
+Of.
+Of.
+8Q(f - fe)
+, 8Q(-f - fe)
+of.
+of.
+Q(f - f) +Q(-f - f.) +α2
+这是「的一个奇函数，所以
+(aIn Prr(: fe)
+(8In Pxr(f:fe)
+df
+Of.
+of.
+另外，对于f≥0,我们有Q（-f-f）=0。这样由于在图3.6的假定，它的导数是零，于是
+得出
+df
+z0+(f - f)0
+aQ(f-ft
+a(f-fe)
+(-1)
+df
+20 +(f - f)0
+Je
+Q(fi) + 6?
+fe
+其中令f=f-f。但是,1/2～f≥1/2-J=fz且f≤-=f,所以我们可以将
+积分限改为区间［－1/2,112],这样
+var(fe) ≥
+df
+Q(f) + α2
+8 In(Q(f) +α
+df
+例如，考虑
+Q(0-p[-()T

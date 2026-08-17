@@ -1,0 +1,38 @@
+846
+第二卷：统计信号处理基础一一-检测理论
+为传感器及传感器；的PSL)：主对角线上的各项为传感器的自PSD，它刚好是通常的ISID
+矩阵P（)称为互谱郑阵（CSM）：可以证明它是Hemitian的和正定的（参见习题13.19）：
+现在扩展第2章中的结论，说明协方差矩阵C是如何近似为块对角的：考虑一个ACF满
+足R【］=0（≥2）多道过程（称为多通道MA（1)过程），由（13.38）式有
+R0]
+R(-1]
+R{-1]
+R[1]
+RT [0]
+RT[-1]
+下面定义多通道正弦借号短阵为
+IM
+IM exp(j2π fa)
+VN
+IM exp[32Rfi(N - 1)
+其中f=iNi0,1，，，N-1),因而V.是MN×的,I为M×M的单位矩阵。那么,计
+算CV：，我们有
+R[0] + RI[-1] exp(j2 fi)
+R[1] + R[0] exp(j2 fa) + R[-1] exp(3j4 fi)
+VN
+R [1] exp[i2 fi(N - 2)] + R[0] exp[32fi(N - 1]
+[R[0] + RI[-1] exp(j2 f:)]1
+[RI[1] exp(-j2元 f) + RI[0] + RT [-1] exp(j2 fi)] exp(j2f)
+VN
+[R[1] exp(-j2 f) + R [0] exp[j2 fi(N - 1]
+IMPI(f)
+IM exp(j2元f.)PI (f)
+VN
+IM explj2 fi(N - 1)]P1(fi) 
+IM
+Im exp(j2n fi)
+()A=()Id
+VN
+Im exp[j2#fi(N  1)] 
+P(f) = R[-1] exp(j2f) + R[0] + R[1] exp(-j2f)
+是 CSM,令 i=0,1,..·,N-1,有

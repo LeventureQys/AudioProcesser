@@ -1,0 +1,44 @@
+第 3章 Cramer-Rao 下限
+51
+注意
+exp[32f( + 1)] df
+exp[-j2πf( +1)] df
+A*(0)2
+A2(f)
+explj2f( -- 1)) df
+exp[j2f(t - k)] df
+1A(F))2
+[A(F)2
+这是根据被积函数的Hermitian性质（由于A（-f)=A*（f))得出的，于是我们有
+expli2f(k - 1)) df
+[A(0)2
++N
+exp[j2f(k + l)l df
+A*
+第二个积分是1/A"（f)²在n=+1>0计算的傅里叶反变换。由于序列是两个反因果
+序列的卷积，所以这一一项是零，也就是如果
+h[n]
+n20
+[A()]
+0>u
+1 A*(f)2
+h[一n] ★h[-n]
+对于n≥0
+因此，
+[1(8]kt
+对于表=1,2,·.·-p及1=p+1,
+[()] 
+[A(f)exp(j2nfh) + A*(f)exp(-j2nfk)] df
+02 TA(F)?
+exp(j2nfk) df
+A*(F)
+其中我们再次使用了被积函数的Hermitian性质和下-1 11/A“（f)l的反因采性。最后，对
+于k=p+1及l=p+1,
+[1(0] =
+201
+所以
+ ()1
+(3.44)
+OT
+201
+其中[Rx］= rx[i］是 P× p 的 Toeplitz 自相关矩阵,o是 P× 1 的零失量。对 Fisher 信

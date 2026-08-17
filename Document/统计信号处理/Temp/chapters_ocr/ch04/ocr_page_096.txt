@@ -1,0 +1,34 @@
+第4章线性模型
+81
+C;  α2(HTH)-1
+(4.29)
+例4.5白噪声中的 DC电平和指数信号
+如果 x[n]=A+r"+w[n],n=0,1,...,N-1,其中 r是已知的,A是要估计的,w[n]是
+WGN，模型是
+x=A
+其中 s=[1 r..r*-I]。根据(4.28)式,MVU估计量为
+N-1
+E([n] - ")
+由（4.29)式可得方差为
+var(A) =
+现在应该很清楚，以上描述的两种扩展可以组合起来，从而产生一个由下面定理总结的一
+般线性模型。
+定理4.2（一般线性模型的最小方差无偏估计量）如果数据可以表示为
+X= He+$+w
+(4.30)
+其中是N×1的观测失量,H是N×p的观测矩阵(N>p),秩为P,是p×1的待估计的
+参数矢量，s是N×1的已知信号样本矢量，W是N×1的噪声矢量，并且PDF为N（0,C),那
+么MVU估计量为
+(s -- X)r-DrHt-(Hr-O1H) = 
+(4.31)
+协方差矩阵为
+C = (HTC-1H)-1
+(4.32)
+对于一般的线性模型，MVU估计量是有效估计量，它达到了 CRLB。
+由于许多信号处理问题都可以通过（4.30）式来表示，因此这个定理在实际中十分
+有用,
+参考文献
+Graybill, F.A., Theory and Application of the Linear Model, Duxbury Press, North Scituate, Mass.,
+1976.
+MacWilliams, F.J., N.J., Sloane, "Pseudo-Random Sequences and Arrays," Proc. IEEE, Vol. 64,
+pp. 1715-1729, Dec. 1976.

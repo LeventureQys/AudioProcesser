@@ -1,0 +1,34 @@
+448
+第一卷：统计信号处理基础一估计理论
+() = E [exp(j Re(αHx)
+(15B.1)
+且对于复高斯 PDF,这变成
+()  exp [3 Re(H) -
+(15B.2)
+现在，如果y=Ax+b，我们有
+Φ(a) = E[exp(iRe("g)]
+E [exp (i Re(αH Ax +"b)]
+exp [3 Re(αHb)] E [exp [3 Re((AHa)Hx)]
+exp [3 Re(a"b)] (AHa)
+exp [i Re(aH(Ai + b)-a"ACzA"a]
+对于复高斯PDF,通过把特征函数联系在一起，我们可以得出
+y~ CN(Ai +b,AC-AH)
+5.两个独立复高斯随机变量的和也是复高斯的。
+利用特征函数，我们有
+中+() =
+E [exp(j Re(α*(1 + 2))]
+E [exp(j Re(α*))exp(j Re(α*2)]
+E [exp(j Re(α*))] E [exp(i Re(α*2))]
+中 ()中(a)
+exp |3 Re(u*jr)
+-40P0| exp [3 Re(a*i2) -
+exp |i Re (a (i1 + i2) - (oi +o2)
+因此,我们有，+2～CN，+2，+)。当然,此性质可以扩展到任意多个独立
+的随机矢量的情况。
+6.（15.24)式给出了复高斯随机矢量的四阶矩。
+考虑=［2]的特征函数,其中为零均值复高斯。那么
+中() = E[exp(iRe(aHx)] = exp
+我们首先证明
+0r(w)
+E(2s)
+(15B.3)

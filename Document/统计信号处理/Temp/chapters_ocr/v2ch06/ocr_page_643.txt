@@ -1,0 +1,41 @@
+628
+第二卷：统计信号处理基础一
+一检测理论
+-2
+InN
+Ingi
+In
+注意，罚函数项随着参量数的增加而增加，而拟合项则减少。选择的模型是在这两种相互
+矛盾的要求中进行选择。欠拟合将导致参数的较大的偏差（招高了E（。))，而过拟合则
+由于多余参数的估计而增加了方差。这种准则可以证明当W-→的时是一致的，正确的假
+设将被选择[Bozdogan1987]，然而对于有限数据记录则不是最佳的。
+根据信息论编码考虑对（6.40）式提出了一种近似方法，称为最小描述长度（mininmum
+dcscription length,MDI,),它是选择使
+MDL(i) = -ln p(x; 0:/Hi) +
+In N
+(6.41)
+最小的一种假设[Rissanen1978]，其中n:是估计参量数，或等价于8,的维数，为了证明它近似为
+广义似然准则，我们首先注意到，由（6.40)式，
+-i = - In p(x; 0:[Ha) +  In det(I(6:)
+作为对行列式项的近似,对于某个常数 c,我们令 det(I(é,))=cvi+i。在前一个例子中,我们
+有det(I())= N/(2 %),det((,))= N2(2 ),以及 det((2)) N/(24 )。很清楚,这
+种近似是合理的，它的精度取决于Fisher信息矩阵，那么我们有
+i+l
+- -Inp(x;:H) +
+InN
+由于 n:=i+1是未知参量数,在去掉常数项后正好是 MDL。
+参考文献
+Box, G.E.P., G.C. Tiao, Bayesian Inference in Statistical Analysis, Addison- Wes-
+ley, Reading, Mass., 1973.
+Bozdogan, H., "Model Selection and Akaike's Information Criterion (AIC): The
+General Theory and Analytical Extensions," Psychometrika, Vol. 512, Pp.
+345-370,1987.
+Chernoff, H., "On the Distribution of the Likelihood Ratio," Ann. Math. Statist.
+Vol. 25, Pp. 573-578, 1954.
+Kendall, Sir M., A. Stuart, The Aduanced Theory of Statistics, Vol. 2, Macmillan,
+New York, 1979.
+Lehmann, E.L., Testing Statisticul Hypotheses, J. Wiley, New York, I959.
+Rissanen, J., “Modeling by Shortest Data Description," Automatica, Vol. 14, pp.
+465-471,1978.
+Seber, G.A.F., C.J. Wild, Nonlinear Regression, J. Wiley. New York, 1989
+Zacks, S., Parametric Statisticai Inference, Pergamon, New York, l981.

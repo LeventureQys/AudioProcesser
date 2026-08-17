@@ -1,0 +1,10 @@
+附录 8A
+按阶递推最小二乘估计的推导
+233
+xT(I - H,D,HT)h*+hT+P+x
+ht+Pth+1
+xTP+h+th+,P+x
+hT+,Pthk+1
+(+P+)"
+Umink
+h++Pthk+1

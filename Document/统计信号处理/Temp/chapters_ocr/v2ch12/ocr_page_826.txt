@@ -1,0 +1,43 @@
+第 12章
+模型变化检测
+811
+WT
+ay
+其中
+[ea[no] x[no + 1] . .. Er[N - 1]]'
+Ey
+[ey[nol eg[no + 1] . . y[N - 1]
+[0 4?/2 .. . (N - 1 - no)?△3/2]T
+[wx[nol wa[no + 1] .. . w[N - 1]
+WyH
+[wy[nol wy[no + 1] . . wy[N -- 1]
+且~N(0,²I)。×与H的维数分别为2（N－n）×1及2(N－n）×2。应用定理7.1（参见
+第7章），我们希望检验
+Ho : 6= 0
+H1 : ≠0
+在定理7.1中令A=I,b=0,如果
+6T HTHO!
+(12.16)
+T(x)
+GLRT判H,其中,=(H'H)-'H"x,因此有
+xTH(HTH)-1HTx
+T(x) = 2
+又有 H"H= diag(h"h,hrh) = h'hI,所以
+IH×/2
+T(x)
+-2hTh
+(hTex)? + (hTey)?
+62hTh
+或者最终如果
+N-1
+(n - no)2A2
+- no)2△2
+n=no
+T(x)
+N--1
+(n - no)242
+n=no
+我们判H1。从(12.16)式，可以证明上式等效为
+N-1
+2 -no)242
+其中

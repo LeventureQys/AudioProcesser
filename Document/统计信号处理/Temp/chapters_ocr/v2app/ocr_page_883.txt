@@ -1,0 +1,54 @@
+868
+统计信号处理基础
+一估计与检测理论
+如果nxn方阵A满足
+A2 A
+我们称A为等幂矩阵：上面的条件隐含着A=A，1=1：个例子就是投影矩阵
+Hr-(HiH)H= 
+其中H是一个m×"的满秩矩阵（m>n）
+n×n的Toeplitz方阵定义为
+[A]; = Qi-]
+α. 1
+a-2
+a..in-
+1-V
+a-(n.-2)
+A:
+(AT.I)
+++.
+...
+an-l
+(n- 2
+an-3
+沿着主对角线的每一个元素都是相等的。如果同时还有 α-= a，那么 A是一个对称 Toeplitz
+矩阵。
+A1.1.3
+矩阵运算和公式
+在这一节里，总结了矩阵代数运算的一些有用的公式：对于n×n矩阵A和B，下列关系
+是有用的，
+(AB)T
+BTAT
+(AT)-1
+(A-1)T
+(AB)-1
+B=1A-1
+det(AT)
+det(A)
+det(cA)
+c" det(A)(c a scalar)
+det(AB)
+det(A) det(B)
+det(A *1)
+det(A)
+tr(AB)
+tr(BA)
+tr(ATB) 
+ZZ[Ale;[Blsi
+z=1 j=1
+在对线性和二次型形式进行求导时，下面的梯度公式是很有用的
+abTx
+8x
+OxTAx
+2Ax
+其中假设A是对称矩阵。另外,对于矢量x和y我们有
+yTx = tr(xyr)

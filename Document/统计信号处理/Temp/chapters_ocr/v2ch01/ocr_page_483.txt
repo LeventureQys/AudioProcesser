@@ -1,0 +1,39 @@
+468
+第二卷：统计信号处理基础一检测理论
+McDonough, R.N.. A.T. Whalen, Detection of Signats in Noist. 2nd Ed.. Academic
+Press. 1995.
+Proakis. J.G.. Digitut Comrnunicutions. 2nd Ed.. AleGraw-Hill. New York. 1989.
+Rabiner, L., B-H Juang. Fundarmertals of Speech Recognition. Prentice-Hall, En-
+glewo0 Cliffs.N..J.. 1993.
+Rao, C.R.. Lintnr Statistical Inferenre and its Apptirations. J. Wiley, New York,
+1973.
+Skolnik, M.l.. Introuur:tion to Radur Systerms. MeGraw-Hill. New York. 1980
+Taylor. S.. Afodrling f'inuncinl Timif: Series. J. Wiley. New: York, I986.
+Van Trecs. H.L.. Detection, Estintitm, and Moriutution Theory. Vols. I III, J.
+Wiley, New York, 1968-1971.
+Willsky A.S., H.L. Jones. "A Geleralized Likelihood Ratio Approach to Detection
+and Estimation of Jumps in Linear Systems." IEER Trans. Automat. Contr..
+Vol. A(-21. Pp. 108-112, 1976.
+习题
+1.1考虑检测问题
+[0]m = [0]& : 
+Hi : r[0] = 1 + w[0]
+其中w[0]是零均值、方差为²的高斯随机变量，如果检测器在×[0]>1/2判H，成立，求
+H为真时做出错误判决的概率。也就是要确定当H。为真时判为H，的概率，即求P。=
+Prx[0]>1/2;H。如果要使这个概率为10-3，²应为多少?
+1.2
+考虑检测问题
+Ho : z[0] = w[0]
+H1 : x[0] = 1 + u[]
+其中 w[0]是在区间：－，a]（α>0上均勾分布的随机变量。如果x[0]>1/2,检测器判
+H，成立。随着（的增加,讨论检测器的性能。
+1.3
+考察数据x[0],其中x[0]是均值为A、方差为α=1的高斯随机变量。我们希望检验A
+= A。还是 A= －Aα提出一个检验,并讨论检验性能随 A。变化的函数关系。
+1.4
+在习题1.1中,现在假定H。为真的概率为1/2。如果α0]>1/2判H成立,求总的错误
+概率,或者
+P。=- Pr[α[0] > 1/2]Ho] Pr[Ho] + Pr[r[0] < 1 /2]Hi} Pr[Hi]
+画出 P-α²的图,并解释你的结果。
+1.5在习题1.1中，现在假定我们有两个样本。我们的判决是根据这两个样本进行，如果
+= (r[0] +[1]) >

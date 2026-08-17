@@ -1,0 +1,40 @@
+第15章复数据和复参数的扩展
+401
+在处理复信号和复参数时，总能将其分解为实部和虚部，并且像对实数据矢量/或实参数
+矢量--样处理：但是这样做有一个明显的缺点，可以在下面的例子中看出，
+例15.2#
+瞩度的最小二乘估计
+假设我们希使LS误差
+N-1
+J(A) =  I[n] - A[n][2
+2=0
+对于A最小，其中[n]、A、3［n］均为复数：一个简单的方法就是将所有的复数分解为
+实部和虚部，
+J'(An,A) =
+Z [r[n] + jr(n] -(AR +jAr)(sr[n] + jsi[n])2
+N... 1
+Z(cr[n] - ArsR[n] + Arsi[n])2 +(rr[n] - ARsi[n] - Arsr[n])2
+n=0
+这是实变量A和A,的标准二次型形式。因此，令X=［x[0]x［1]..-［N-1]]T,x
+=[x,[0]x[1]...x,[N- 1]]",Sx =[$-[0]$n[1]..,Sx[N- 13],S, =[s,[0]s,[1]..-
+s,[N-1]]",所以
+J'(AH, A)) = (XH*- ARSH + ArsI)T(xR - ARSR +ArsI)
++(xY - A+S - ArSR)T(XI - ARSI - ASR)
+或者令S =[S - S,],S =[s, Sn],A=[AR A,]"
+J'(A) = (
+(XR - SiA)T(XR - StA) + (XI - S2A)T(xXI - S2A)
+XAXR -XRS1A-ATsTXR +ATSI stA
++xTXI -xI's2A - A's+XI + ATsIs2A
+求导，并由（4.3）式得到
+: -2s, XR + 2sf s1A - 2s xI + 2s, $2A
+令等式为并且求解得
+(sTXR +sxr)
+-stsr
+SHXR +STXI
+ShSR +$Is!
+STSI+sESR J
+sXI - 8TXR 
+ShXR + $+X!
+shsr +stst
+SRX1 -sT XR
+SRSR +sTs!

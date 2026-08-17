@@ -1,0 +1,55 @@
+附录10A
+NP检测器对微弱信号的渐近性能
+773
+d ln p(a(nl))
+dinp(r)
+d in p(z) dp(c)
+s[n]Adr
+dr[n]
+dr
+da
+dp()
+dp(r)
+dx
+= As[n]i(A)
+dr
+p(r)
+所以
+N-1
+E(T(x); Ht) = Ai(A)  s[n)
+n=0
+在H，条件下方差可以按下而的方法求出．注意到随机变量dlnp（xn)/xn]的独立性，有
+dln p(r)
+var(T(x); Hi) = Z s?[njvar
+dr
+n=0
+现在,对于小的A有
+dIn?
+dinpir
+dr
+p(r -- As[n])dr
+dr
+dln p(r
+dp(a)
+p(r)
+dt
+din p(c)
+p(r)dr = i(A)
+利用这些结果，我们得
+d In p(c[n])
+var
+(A) -- A2s2[n]i2(A)
+da[n]
+(A)
+因此有
+N-1
+var(T(x); H1) ~ (A) Z s’[n) = var(T(x); Ho)
+n=0
+N-1
+0, (A) Z
+在Ho条件下
+N-1
+N-1
+Ai(A)  s[n], 2(A) Z s2[n]
+在H1条件下
+n=0

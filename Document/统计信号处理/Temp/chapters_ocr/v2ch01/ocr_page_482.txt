@@ -1,0 +1,39 @@
+第1章引言
+467
+代数推导和证明将在附录中给出。前面介绍的噪声中的DC电平问题将作为一个标准的例
+子，几乎在所有检测方法的介绍中都将引入：这样做是希望读者在建立前面的概念时能够形
+成他自己的观点。
+所有常用符号的数学表示总结在附录2中：连续时间波形和离散时间波形或序列通过表
+示符号进行区分，（)表示连续时间，而x［n]表示离散时间。但是，在绘制x［几的示图时，
+所用的时间是连续的，为了易观察，点之间用直线连接：所有的矢量和矩阵用粗体字表示，
+所有的矢都是列矢。所有其他符号都在书中给出了定义。
+参考文献
+Burdic. W.S., Underwater Acoustic System Analysis: Prentice-Hal, Englewood
+Cliffs, N.J., 1984.
+Chan, D.S.K. D.A. Langan, S.A. Staver. "Spatial Processing Techniques for the
+Detection of Small Targets in IR Clutter," SPlE, Signal und Data Processing
+of Small Targets, Vol. 1305, Pp. 53-62, 1990.
+Cox, D.R., D.V. Hinkley, Theoreticat Statistics, Chapman and Hall, New York,
+1974.
+Ellenberg, S.S., D.M. Finklestein, D.A. Schoenfeld. "Statistical Issues Arising in
+AIDS Clinical Trials," J. Am. Statist. Asss0c., Vol. 87, pp. 562-569, 1992.
+Fukunaga, K., Introduction to Statisticai Pattern Recognition, 2nd ed., Academic
+Press, New York, 1990.
+Gustafson, D.E., A.S. Willsky, J.Y. Wang, M.C. Lancaster, J.H. Triebwasser,
+"ECG/VCG Rhythm Diagnosis Using Statistical Signal Analysis. Part II:
+Identification of Transient Rhythms," IEEE Trans. Biomed. Eng., Vol. BME-
+25, Pp. 353-361, 1978.
+Helstrom, C.W.. Elenents of Signal Detection and Estimation, Prentice-Hall, En-
+glewood Chiffs, N.J., 1995.
+Ives, R.B.. "The Applirations of Arivanced Pattern Recognition Techniques for
+the Discrirnination Between Earthquakes and Nuclear Detonations, Pattern
+Recognit:on, Vol. 14, pp. 155-161, 1981.
+Justicc, J.H. ,"Array Processing in Exploration Seisrnology." in Array Signat Pro-
+cessing. S. Haykin, Ed., Prentice-Hall, Englewood Ciiffs, N.J., 1985.
+Kay, S.M.. Fundanentals of Statisticat Signai Processing: Estimation Theory,
+Prentice-Hall, Englewood Cliffs, N.J.. 1993.
+Kendall, Sir M., A. Stuart, The Advanced Theary of Statistics, Vols. 1-3, Macmil-
+lan, New York, 1976-1979.
+Knight, W.S., R.G. Pridham, S.M. Kay, "Digital Signal Processing for Sonar,"
+Proc. IEEE, Vol. 69, Pp. 1451--1506, Nov. 1981.
+Lehmann, E.L., Testing Statistical Hypotheses, J. Wiley, New York, 1959.

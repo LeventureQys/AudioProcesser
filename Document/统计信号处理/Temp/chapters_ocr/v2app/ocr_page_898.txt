@@ -1,0 +1,16 @@
+附录2符号和缩写术语表
+883
+RBLS
+Rao-Blackwell-Lehmann-Scheffe
+SNR
+信噪比
+TDL
+节拍延时线（和FIR相同）
+TDOA
+到达时差
+2D
+二维
+WGN
+白高斯噪声
+wSS
+广义平稳

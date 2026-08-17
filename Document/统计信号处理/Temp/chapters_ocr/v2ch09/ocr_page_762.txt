@@ -1,0 +1,54 @@
+信号处理例子的渐近等效Rao检验
+附录 9C
+由于C是WSS随机过程的协方差矩阵，当Wα时，由第2章我们有
+N-1
+C-1
+Pww(fk)
+其中 Pu(J)是 w[ n]在 f = f = k/N 处的 PSD,V=(1/V/N)[1 rxp(j2元f)..exp[j2元fi(N -
+1)],因此,令H「h, hi,其中h;是H的第i列,
+N-1
+Hc-H=[hi h²』
+Vkv[ hi h2]
+k=0
+Pww(fk)
+N-1
+vHh2 1
+Pww (fx)
+N-1
+hi'vk
+Hhi h2 ]
+Puw(fr)
+N-1
+hviHhi hTvivHh2
+Pww(fa) [hvkvhi hiviv'h2
+k=0
+但是,当 N→时,
+N-1
+N-1
+H(fh)H,(k)
+H()H()
+VeYk
+Pww(fu)
+Pww(fk)
+Pww(f)
+k=0
+H:()?
+H'()H,()
+af
+i=j
+af
+Pww(f)
+Pww(f)
+其中 H,（f)是h：中元素的傅里叶变换,或者准确地说是 H,（f)=二=[h;],exp（-j2rfm)。最
+后一个结果是根据这样的事实得出的，即对于大的N,h和h，互为希尔伯特变换，所以
+H(f)=-jsgn(f)H,（f)。由于IH,（f)I2/P（f)是f的偶函数，而sgn(f)是f的奇函数,因此
+H+(f)H2(f)
+ -j sgn(f)|Hi(f)/2
+af
+df
+Puu(f)
+Pww(f)
+另外注意到IH(f)I² IH2(f)}=IS(f)1,其中 S()=FIcos2元(fon +
+N→co时,我们有
+(HTC-1H)-1 = 
+(9C.1)

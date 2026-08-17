@@ -1,0 +1,54 @@
+附录10B
+IID非高斯噪声中线性模型信号的RaO检验
+775
+从（10B.1)试可得
+0ln p(x; 0) 0ln p(x; @)
+[1(0]]k
+001
+『N-1
+N-1
+Z g(a[m] - s[m])hmk
+Z g(a[n] - s(n])hn!
+1m=0
+n=0
+N-1 N-1
+Z Z E [g(r[m] - s[m])g(a[n] - 8(n])] hmihnt
+m=0 n=0
+由于各 x_n]是相互独立的,对于m≠n,有
+E [g(c[m] -- s[m])g(x[n] - s[n] = E [g(r[rm] - s[m]]] E [g(r[n] - s[n]]
+以及
+dp(w)
+dw
+E [g(α[n] - s[n]
+p(r[n] -- s[n])dr[n]
+p(w)
+[2]6-[u]=m]
+dp(t[n] - s[n])
+dp(w)
+da[n]
+dw
+J- d(a[n] - s(nl)
+dw
+P(w)I= = 0
+由于 PDF （u)对大的 w必须趋近于0,只有当 m= n时才对和式有贡献,因此
+N-1
+[(0]k = Z
+hnthnuE [(g(c[n] - s[n])]
+dp(w)
+E[(g(a[m] - s[n)] = J
+dw
+p(r[n] - s[n])da[n]
+p(w)
+w=r[n]-s[n]
+dp
+dw
+den
+p(w)
+w=z[n]-8[n]
+dp(w)
+dw
+(A)
+p(w)
+因此[I(0)=i（A)Zhhn，或
+I(6 = 0)  I()  (A)HTH
+最后，应用（10B.2)式可得

@@ -1,0 +1,58 @@
+432
+第一卷：统计信号处理基础一一估计理论
+NP(f) =
+E[X(ft)X*(f0)) =
+(15.70)
+DFT系数近似为不相关的，且由于他们为联合复高斯的,因此也是渐近独立。总而言之，我们有
+X(fk) & CN(0, NP(f))
+k = ,1,...,N 1
+(15.71)
+其中α"表示渐近 PDF，Xf)为渐近独立。回想对于 CWCN,这些性质都是精确的,并不要求
+N-→。这是由于的比例恒等矩阵以及DT的酉变换。然而，一般来说，由于U的列或者等
+价于E的列只是近似为C,的特征矢量，C,是HemitianToeplitz矩阵[Grenander and Szego 1958]，
+所以Cx只是近似为对角矩阵。换句话说，Cx=U(NC,)U"近似为NC,的特征分解。我们现
+在可以写出 X的渐近 PDF 为 X～CN（0,Cx），其中由（15.71)式有 Cx= Ndiag（Pz（f），
+P（fi），···，P（f-1))。为了将其 PDF 变换回x的 PDF，我们注意到 X =，且由于
+U=EVN,所以,
+E~1X
+VN
+EHX ~ CN(0
+CxE)
+由于E"E/N=I且E-I=E"/N,明确的表达武变为
+In p(x;ε) = -N ln π - ln det
+CxE
+N2
+-N In☆ - ln |det
+E"E) det (ACx)
+- HEHCEx
+-N In T - In det
+WCx) -xHcx
+因此
+N-1
+N-1
+1X()12
+NP(f)
+=0
+k=0
+由于假定了大的W，我们可以进一步将此式近似为
+N-1
+N-1
+[X(f)2 1
+In p(x;E)
+NIn-N[n P(fx)]
+P(ft)N
+k=0
+k=(
+1x(0)2
+ -Nln-N
+In P(f)f - N
+af
+P(f)
+()
+Nn- N
+In P() +
+df
+P(f))
+在最后一步，我们利用了I(f)和P（f)是周期为1的周期函数这样的事实来变换积分限。为
+了求Fisher信息矩阵，我们只需计算lnp(x；与)的二阶偏导数，注意到对于大的数据记录，
+E(I(f)) = E(

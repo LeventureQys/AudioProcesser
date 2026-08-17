@@ -1,0 +1,56 @@
+第5章随机信号
+575
+E[(acos 2fon + b sin 2π fon)(a cos 2π fo(n + k) + b sin 2π fo(n + k))]
+E(a2 cos 2# fon cos 2# fo(n + k) + E(b2 sin 2 fon sin 2 fo(n + k))
+02(cos 2# fon cos 2 fo(n + k) + sin 2 fon sin 2 fo(n + k)) =  cos 2 fok
+所以我们可得出]是WSS高斯随机过程，s［n的ACF为［h］=ocos2fa此外，
+可以证明 A=V+的PDF是瑞利的,或者
+A2
+A>0
+20?
+A<0
+而 中=arctan(－b/a的 )F是[0,2］，A 和是相互独立的[Paxoulis 1965]术语“瑞利
+衰落是参照幅度PIF
+利用这些假定，我们现在有贝叶斯线性模型X=H+W，其中
+cos 2π fo
+sin 2# fo
+H=
+cos2fo(N - 1) sin 2πfo(N -- 1)
+~N(0,oI),W~N(0,αI), 与w统计独立。NP检测器很容易从(5.18)式求出,即
+T(×) = xTHCHT(HCgHT +2I)-Ix = 2xTHHT(HHT +I)-Ix
+根据矩阵求逆引理（参见附录1)，
+(A + BCD)-1 = A-1 - A-1B(DA-1B + C-1)-1DA-1
+令A=I,B=αH,C-I,D=H,我们有
+?HTH
+T(x)  )xTHHT
+HT
+N-1
+N-1
+coS?
+2元fon
+cos 2π fan sin 2π fon
+HTH -
+n=0
+n=0
+N-1
+N-1
+cos 2n fon sin 2 fon
+sin? 2 fon
+n=0
+如果我们假定N很大，且0<f。<1/2，那么我们有
+N-1
+N-1
+ cOS 4
+N-1
+N-1
+cos 2 fon sin 2 fon
+sin 4r fon α 0
+12
+n=0
+n=0
+N-1
+N-1
+sin? 2 fon
+cos 4π fon
+n=0
+n=0

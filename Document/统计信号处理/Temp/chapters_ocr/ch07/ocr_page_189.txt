@@ -1,0 +1,50 @@
+174
+第一卷：统计信号处理基础一
+一估计理论
+HIST
+Histogram values for each cell where HIsT(i)
+is the value for XX(I), I=1,2,..,NCELLS
+DIMENSION X(1),XX(1),HIST(1)
+CELLWID=(XMAX-XMIN)/FLDAT(NCELLS)
+DO 1O I=1,NCELLS
+10
+XX(I)=XMIN+CELLWID/2.+(I-1.)*CELLWID
+DD 30 K-1,NCELLS
+HIST(K)=O.
+CELLMIN=XX(K)-CELLWID/2.
+CELLMAX=XX(K)+CELLWID/2.
+D0 20 I=1,N
+20
+IF(X(I).GT.CELLMIN.AND.X(I).LT.CELLMAX)HIST(K):
+* HIST(K)+1./(N*CELLWID)
+30
+CONTINUE
+RETURN
+END
+SUBROUTINE PLOT(X,Y1,Y2)
+DIMENSION X(1),Y1(1),Y2(1)
+Replace this subroutine with any standard Fortran-compatible
+plotting routine.
+RETURN
+END
+SUBROUTINE WGN(N,VAR, W)
+This subroutina generates samples of zero mean white
+Galssian noise.
+Input parameters:
+- Number of noise samples desired
+VAR - Variance of noise desired
+Output parameters:
+- Axray of dimension Nxl containing noise samples
+DIMENSIGN W(1)
+PI=4.*ATAN(1.)
+Add 1 to desired number of samples if N is odd.
+NI=N
+IF(MOD(N,2) .NE.O)N1=N+1
+Generate Nl independent and uniformly dietributed random
+variateB on [0,1].
+CALL RANDOM(N1, VAR,W)
+L=N1/2
+Convert uniformly distributed random variates to Gaussian
+ones using a Box-Mueller transformation.
+DO 10 I=1,L
+U1=W(2*I-1)

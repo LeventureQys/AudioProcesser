@@ -1,0 +1,39 @@
+768
+第二卷：统计信号处理基础一一检测理论
+最后，者频率未知，这也是实际经常遇到的情况，一个合适的方法是，如果
+max Tr(x) > "
+fo
+max
+fur i(A)
+则判HI。这是因为，对于未知频率GLRT,如果
+2 In P(x; A, @ o, H1)
+p(x; Ho)
+或等价为如果
+P(x; A. o. fo, H1)
+2 ln max
+2in
+fu
+p(x; Ho)
+则判H，。或者根据对数函数的单调特性，如果
+p(x: A, , fo, H1)
+max 2 ln ?
+ 2ln?
+fo
+p(x; Ho)
+T(×)
+我们判H（参见习题7.21）。但是T（x)是已知频率情况的GLRT统计量，因此它是渐近等效于
+Rao统计量。因此，如果
+max Tr(x) > "
+我们判H：，然而要注意，由（10.31)式给出的渐近性能在这种情况下并不适用。由例9.4给出
+的提示性说明解释了为什么RaD检验不能叠接应用于未知频率的情况
+参考文献
+Box, G.E.P., G.C. Tiao, Bayesian Inference in Statisticat Anatysis, Addison-Wesley
+Reading, MA, 1973.
+Huber, P.J., Robust Statistics, J. Wiley, New York, 198l.
+Johnson, N.L., S. Kotz, N. Balakrishnan. Continuous Uniuariate Distributions,
+Vols. 1,2,, J. Wiley, New York, 1994.
+Kassam, S.A, H.V. Poor, "Robust Techniques for Signal Processing: A Survey," Proc.
+IEEE, Vol. 73, pp. 433-481, March 1985.
+Kassam, S.A., Signat Detection in Non-Gaussian Noise, Springer-Verlag, New
+York, 1988.
+Kay, S., D. Sengupta, "Recent Advances in Non-Gaussian Autoregressive Pro-

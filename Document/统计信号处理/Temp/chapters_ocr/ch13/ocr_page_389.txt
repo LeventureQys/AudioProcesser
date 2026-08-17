@@ -1,0 +1,51 @@
+374
+第一卷：统计信号处理基础…一估计理论
+然而，在大约20个样本后，扩展的卡尔曼滤波器靠近了航迹，另外，还会注意到最小MSE
+并不像前一个例子那样单调递减；相反，它在部分时间内是增加的，这可以通过将卡尔曼
+滤波器与第12章中的序贯LMMSE进行对照来解释，对于后者，尽管我们接收的数据越
+来越多，但是我们估计的是同样的参数。然而在这里，我们在收到新的数据样本的每个时
+刻，也在估计新的参数。由于驱动噪声输入的影响而增加的新参数的不确定性，有可能大
+到足以抵消观测新的数据样本所得到的知识，从而使得最小MSE增加（参见习题13.23)。
+最后说明一点，在这个模拟中，由于起始状态估计较差，扩展的卡尔曼滤波器的线性化误
+差还是可以容忍的，然而，一般情况下我们就没有这么幸运了。
+20
+15 -
+10+
+噪声污染的与真实的r,[n]
+真实航迹
+-5-
+观测航迹
+10 .
+·15
+-10
+-5
+10
+15
+噪声污染的与真实的r[m]
+图13.24真实的和观测到的飞行器航迹
+20 -T
+15
+10-
+卡尔曼估计和真实的 r,I川]
+真实航迹
+0-
+扩展卡尔曼
+-5-
+滤波器估计
++01-
+-15
+:10
+-5
+10
+15
+卡尔受估计和真实的r[]
+图 13.25
+真实的和扩展的卡尔曼滤波器估计
+参考文献
+Anderson, B.D.O., J.B. Moore, Optimat Fitering, Prentice-Hall, Englewood Cliffs, N.J., 1979.
+Chen, C.T., Introduction to Linear System Theory, Holt, Rinehart, and Winston, New York, l97o.
+Gelb, A., Applied Optinat Estimation, M.I.T. Press, Cambridge, Mass., 1974.
+Jazwinski, A.H., Stochastic Processes and Fitering Theory, Academic Prees, New York, 1970.
+Kennedy, R.S., Fading Dispersive Communication Channels, J, Wiley, New York, 1969.
+Mendel, J.M., Lessons in Digitai Estimation Theory, Prentice-Hail, Englewood Cliffs, N.J., 19s7.
+Van Trees, H.L., Detection, Estimation, and Modulation Theory I, J. Wiley, New York, 1971.

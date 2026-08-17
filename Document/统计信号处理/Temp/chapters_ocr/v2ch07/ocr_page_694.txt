@@ -1,0 +1,42 @@
+第7章具有未知参数的确定性信号
+679
+参考文献
+Harris, F.J., "On thc Use of Windows for Harmonic Analysis with the Discrete
+Fourier Transform." Proc. IEEE. Vol. 66. Pp. 51-83, Jan. 1978.
+Kay, S.M.: Modern Spectrat Estimation: Theury and Application, Prentice-Hall.
+Englewood Cliffs, N.J.. 1988.
+Proc. 1EEE. Vol. 69. pp. 1451-1506, Nov. 1981.
+Lehmani, E.L.. Testing Statistical Iypotheses. J. Wiley. New York, 1959.
+Oppenheim, A.V., R.W. Schafer, Digitat Signat Processing. Prentice-Hall, Engle-
+wood Cliffs, N.J., 1975.
+Van Trees, H.L., Detection, Estimatiot, and Moduiation Theory: Vol. 3. MicGraw.
+Hill, New York, 1971.
+习题
+7.1考虑检测问题
+Ho : a[n] - w[n]
+n =0,1,..-,N-1
+Hi : a[n] = A+w[n] n =0,l,..., N- 1
+其中 w[n]是方差为 α的WGN,DC电平为 A=1或者 A = －1,可以将其看作为未
+知的确定性常数。UMP存在吗？如果不存在,求GLRT统计量。提示：你应该能够
+证明 A=sgn(),其中当 x>0时,gn()=1,x<0时,sgn()= -l。
+7.2
+对于习题7.1描述的检测问题，使用贝叶斯方法。假定A是随机变量,取1和－1的
+概率相等，且与u[n]独立。推导最佳NP检验统计量。提示：不等式
+exp(u)+exp(-u)>等价于I ul >"。
+7.3考虑检测问题
+Ho : x[n] = w[n]
+n= 0,1,...,N- 1
+Hi : α[n] = rn +w[n] n = 0, 1,...,N- 1
+其中 0<<1,但却是未知的,[n]是方差为α²的WCN,求 GLRT统计量。提示：r
+的MLE不能求出闭合形式的解[本书第一卷,第 146页]。
+7.4对于习题7.1 描述的检測问题,假定 A是未知的确定性常数,满足-Ao≤A≤A。A
+的MLE可以证明为
+- Ao
+,<Ao
+A≤Ao
+Ao
+,> Ao
+求 GLRT统计量，当 A时会发生什么情况?
+7.5对于习题7.1描述的检测问题,现在假定 A是一个随机变量，A~u[-Ao，A],且与
+w[n]统计独立,求最佳NP检验统计量。当A。-→时会发生什么情况？提示：计算
+p(x;H,)的积分只能在 Ac→α 时求得闭合解。

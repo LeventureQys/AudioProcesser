@@ -1,0 +1,29 @@
+附录15A
+复协方差矩阵的性质的推导
+我们假定2n×2n的实协方差矩阵C,具有(15.19)式的形式,其中A为n×n的实对称矩阵,B
+为 n× n 的实斜对称(skew-symretric)矩阵,C，为正定的。我们定义复矩阵C,=A+jB。那么
+1. C. 为 Hermitian 矩阵。
+2.C,为正定矩阵。
+我们首先证明若=u+jv，那么
+HC× = 2xCx
+其中x-[]。
+HCx
+(u - jvT)(A + jB)(u+ jv)
+uT Au + juTAy + juTBu - uTBv
+- jyT Au +yT Av +yTBu + jvTBy
+由于 B为斜对称矩阵,u"Bu=v B=0,且 A为对称矩阵,我们有
+x"Cix = uAu-uTBy+yTBu+yTAy
+[" [A][
+1 = 2
+因此,若C为正定的,即对于所有的x≠0,x"C,x>0,则由于当且仅当x=时x=0,
+所以对于所有的0,"C>0。
+3.C,是x=u+jy的协方差矩阵。
+定义C,=A+B,其中
+E[(u - E(u))(u - E(u)T) = E[(v - E(v))(v -- E(v))T)
+1-21-2
+E[(v - E(v))(u -- E(u))T]
+= E [(x - E(x)( - E())H]
+E [(u - E(u) + j(v - E(v) [(u - E(u) - (v - E(v)T}
+= Ａ＋B
+4.C的逆矩阵具有特殊形式·
+E -F 

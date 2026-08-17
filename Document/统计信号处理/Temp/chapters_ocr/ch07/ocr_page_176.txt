@@ -1,0 +1,39 @@
+第7章
+最大似然估计
+161
+(c'x)2 + (s' x)]
+ r[n] cos 2n fon
+r[n] sin 2元 fun.
+IN-J
+Z c[nl exp(-j2 on)]
+或者通过在f上使周期图
+N-1
+α[n] exp(-j2π fn)
+(7.66)
+最大来求得频率的MLF：于是，根据(7.64)式，
+N-1
+Z[n] cos 2m fon
+N-1
+r[n] sin 2 fon
+这样最终我们有
+N..1
+A= 
+r[nj exp(-j2π fon)
+n=0
+，N-1
+Za[n] sin 2a fon
+arctan
+N-1
+Za[n] cos 2x fon
+R=0
+例 7., 17 
+方位估计（例3.15)
+入射到一个线阵列上的正弦信号的方位β与空间频率f的关系为
+Fad
+fs =
+cos p
+假定幅度、相位和空间频率都是需要估计的量，这就成为上一例刚刚描述的正弦信号参数
+估计问题，然而，假定已知时间频率Fo、d和心。一旦利用MLE估计出f，那么根据不变
+性原理，方位的MLE可立即得出，即
+arccos
+Fad

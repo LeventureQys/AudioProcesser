@@ -1,0 +1,42 @@
+410
+第一卷：统计信号处理基础
+一估计理论
+略那些=N2+1，N/2+2，--，N-1时的情况这是由于选择的那些值通过
+X(f）=X"（fn-）而与忽略的那些值建立了联系。我们也忽略X（fo）和X（fa）,原因在于它
+们为纯实数，且只存在于我们几乎不感兴趣的DC和奈奎斯特频率上。我们将证明其FDF为
+X(f)
+X() =
+(15.27)
+ X(f-1) -
+为了验证此式，应先注意到由于实随机矢量
+[ Re(X(fi)) ...Re(X(f-1)) Im(X(fi)... Im(X(f-1)) Jr
+为X的线性变换，所以它是一个实高斯随机失量，这样，我们只需证明X的实协方差矩阵满
+足特殊形式。首先,我们证明X(f)的实部和虚部互不相关。令X(f)=U(f）+jVWf),其
+中U和V均为实的。那么
+N-1
+U(fx)
+Z z[nj cos 2 fxn
+n=0
+N-1
+V(fk)
+-Zz[n] sin 2 fxn
+N-1
+E(U(fx)) = Z E(r[nl) cos 2 fun = 0
+类似地，E(Vf))=0。现在，由于附录1中DFT的关系，我们有
+cov(U(fe), U(fn))
+E(U(f)U(f)
+[N-1N-1
+Z  r[mja[n] cos 2 fxm cos 2n in
+Lm=0n=0
+MM
+d[m -- n] cos 2# fam cos 2nfin
+0? N=1
+cos 2π fun cos 2 fin
+N-1
+[cos 2n(fx + ft)n + cos 2(f - fi)n)
+N-1
+cos 2元(fx - fi)n
+若f≠fi，由同样的DFT关系式有cowUf），U(f））=0。若=ft，我们有cov(U(f），
+U(f))=N14：类似的计算可以证明
+cov(V(fr), V(fi)) =
+k=l

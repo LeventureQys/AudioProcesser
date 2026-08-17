@@ -1,0 +1,44 @@
+708
+第二卷：统计信号处理基础
+检测理论
+40
+20
+10
+-10
+-20
+10
+15
+20
+25
+30
+35
+40
+45
+50
+周期,M
+图 8.10
+修正GRT统计量与假定信号周期的函数
+参考文献
+Chernoff, H., "On the Distribution of the Likelihood Ratio," Ann. Math. Statist.
+Vol. 25, pp. 573-578, 1954.
+Eddy, T.W., "Maxirmun Likelihood Detection and Estimation for Harmonic Sets,"
+J. Acoust. Soc. Am., Vol. 68, Pp. 149.-155, 1980.
+Kay, S.M., Modern Spectrul Estimation: Theory and Application, Frentice-Hall,
+Englewood Cliffs, N.J., 1988.
+Levin, M.J.,"Power Spectrum Parameter Estimation," JEEE Trans. Inform. The-
+ory, Voi. IT-11, pp. 100-107, 1965
+Rabiner, L.R., R.W. Schafer, Digitai Processing of Speech Signais, Prentice-Hall.
+Englewood Cliffs, N.J., 1978.
+Urick, R.J., Principtes of Underwater Sound, McGraw-Hill, New York, 1975.
+Wise, J.D., J.R. Caprio, T.W.Parks, "Maximum Likelihood Pitch Estimation,"
+IEEE Trans. Acoust., Speech, Signat Process., Vol. ASSP-24, pp.418-423,
+1976.
+习题
+8.1
+如果在方差为的WCGN中,随机高斯信号s［n]具有（8.2)式给出的信号协方差矩阵，求
+产生『[O]的MLE的最小化方程。
+8.2
+证明:对于 P。>P，由(8.6)式给山的 J(P。)是单调递增的;而对于 P。<Pt，它是单调
+递减的。然后,对于0≤P。<如，讨论虫（8、7)式给出的JP。)的最小值，
+8.3
+参考例8.2考虑的问题,如果

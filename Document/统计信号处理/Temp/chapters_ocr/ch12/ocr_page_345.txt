@@ -1,0 +1,41 @@
+330
+第卷：统计信号处理基础一一估计理论
+[m] （虚线)
+-2 +
+-3.3
+-4 -
+10
+15
+20
+25
+30
+35
+45
+50
+样本数,n
+图12.8AR(1)过程的现实的线性预测
+参考文献
+Kay, S., "Some Results in Linear Interpolation Theory," IEEE Trans. Acoust., Speech, Signa!
+Process., Vol. 31, pp. 746 -749, June 1983.
+Luenberger, D.G., Optimization by Vector Spare Methods, J. Wiley, New York, 1969.
+Makhonl, J., "Linear Prediction: A Tutorial Review," Proc. IEEE, Vol. 63, Pp. 561-580. April
+1975.
+Marple, S.L., Jr., Digitat Spectrat Anatysts, Prentice-Hall, Englewood Cliffs, N.J., 1987.
+Orfanidis, S.J., Optimum Signat Processing, Macmillan, New York, 1985.
+习题
+12.1 3
+考虑个基于单个数据样本x[0]的标量参数的二次型估计量
+3 + [0]2q +[0]z = g
+和8=cos2元[0]时的二次型MMSE估计量。另外，比较它们的最小MSE。
+12.2
+考虑数据
+a[n] = Ar" +w[n] n = 0,1,..,N - 1
+其中A是待估计的参数，「是一个已知常数，w[是均值为零，方差为的白噪声。
+参数 A 可以看作为一个均值为uA、方差为 α的随机变量,且与 [n]独立。求 A 的
+LMMSE估计量和最小贝叶斯MSE。
+12.3
+一个高斯随机矢量x=[21的均值为零,协方差矩阵为C。如果要根据x线性地
+估计%2，求使贝叶斯MSE最小的估计量。另外，求出最小MSE,并且证明当且仅当C
+是奇异的时最小MSE为零。扩展你的结论以证明,如果一个N×1零均值高斯随机矢量
+的协方差矩阵不是正定的，那么任何随机变量都可以通过其他变量的线性组合而完美
+估计出来。提示：注意

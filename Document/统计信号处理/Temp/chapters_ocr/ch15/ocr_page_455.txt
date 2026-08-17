@@ -1,0 +1,41 @@
+440
+第一卷：统计信号处理基础
+——估计理论
+达角之间的间距。注意，如果e"i=0，由于ax=e/M，我们有常规波束形成器。这是因为
+(t) = alpt [Aexp(j2nFot)e + Bexp(j2nFot)i+i(t)]
+Aexp(j2nFot) + Bexp(j2x Fot)(creHi - Mc) + apti(t)
+信号无失真通过，而输出端的千扰功率与输入端的干扰功率之比是
+IcieHi- Mc2]?
+(15.77)
+例如，我们假定线阵是半波长间距，那么空间频率为
+fs = Fa
+cos p
+这样,对于 p=10,α2=1,M=10,以及在 3,=90(所以f =0)处的信号,我们在图 15.6中
+画出了（15.77)式（用dB表示）与干抗到达角之间的关系曲线。注意当二90°或者当干
+扰到达角与信号到达角相同时，响应为1。然而，当到达角相差大约时，响应快速下降
+到大约-60B。回想自适应波束形成器为约束性无失真通过信号，则当β:=β时，干扰
+不能衰减。
+参考文献
+Brandwood, D.H., "A Complex Gradient Operator and Its Application in Adaptive Array Theory,'
+IEE Proc., Vol. 130, pp. 11-16, Feb. 1983.
+Cox, H., "Resolving Power and Sensitivity to Mismatch of Optimum Array Processors," J. Acoust.
+Soc. Am., Vol. 54, Pp. 771-785, 1973.
+Dzhaparidze, K., Parameter Estimation and Hypothesis Testing in Spectral Analysis and Stationary
+Time Series, Springer-Verlag, New York, 1986.
+Grenander, U., G. Szego, Toeplitz Forms and Their Applications, University of California Press,
+Berkeiey, 1958.
+Kay, S.M., Modern Spectral Estimatton: Theary and Application, Prentice-Hall, Englewood Cliffs,
+N.J., 1988.
+69, Pp. 1451-1506, Nov. 1981.
+Miller, K.S., Compler Stochastic Processes, Addison-Wesley, Reading, Mass., 1974, available from
+University Microfilms International, Ann Arbor, Mich.
+Monzingo, R.A., T.W. Miller, Introduction to Adaptive Arrays, J. Wiley, New York, 1980.
+Owsley, N.L., "Sonar Array Processing," in Armay Signal Processing, S. Haykin, ed., Prentice-Hall,
+Englewood Cliffs, N.J., 1985.
+Papoulis, A., Probability, Random Variabtes, and Stochastic Processes, McGraw-Hill, New York,
+1965.
+Rao, C.R., Linear Statistical Inference and Its Applications, J. Wiley, New York, 1973.
+Van Trees, H.L., Detection, Estimation, and Moduiation Theory, Part III, J. Wiley, New York,
+1971.
+Williams, J.R., G.G. Ricker, "Signal Detectability of Optimum Fourier Receivers," IEEE Trans.
+Audia Electroacaust., Vol. 20, Pp. 264-270, Oct. 1972.

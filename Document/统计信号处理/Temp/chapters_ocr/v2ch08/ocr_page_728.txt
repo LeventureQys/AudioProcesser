@@ -1,0 +1,45 @@
+附录8A
+周期高斯随机过程PDF的推导
+713
+= (α2I+EDEH)-
+EH
+eie
+P:/2
+I-
+NP/2 +a2e;ef
+下一步我们求行列式，
+det(Cr) = dct(α2I+EDEH) = 2N det(I+
+EDE
+使用恒等式
+det(IK + AKLBLK) = det(IL + BLKALK)
+其中K、L表示矩阵的维数，我们有
+det(C.) = α2N(
+ det
+det
+2N
+NP:/2
+02
+i70
+逆和行列式也可以应用习题2.13的公式求得。利用这些结果，在H，条件下的对数PDF为
+Inp(x; P, H)
+n2个
+Ind
+NP:/2
+In 2
+2N
+92
+1 xTx
+P:/2
+NP/2+ 02 lel' x/2
+i=-L
+1 xTx
+2 α2
+NP/2
+P:/2
+le ×/2
+92
+NP/2 +=2
+或最终有
+1xrx
+In p(x; P, Hi)
+2 2

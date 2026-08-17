@@ -1,0 +1,46 @@
+第7章具有未知参数的确定性信号
+675
+例7.6.干扰中信号的检测
+在某些军事应用中，我们希望在出现干抚时检测信号。典型的干扰是窄带正弦干抚，因
+此，检测问题变成
+Ho : r[n] = Bcos(2rfin + Φ) + w[n]
+n=0,1,...,N-1
+H1 : [n] = As[n] + Bcos(2πfin +Φ) + w[n] 
+n- 0,1,...,N-1
+其中，w[n]是方差为 α?的WCN,我们假定信号除了它的幅度A 以外是已知的。干抚的
+幅度和相位是未知的，但干扰的频率是已知的，那么，使用7.6.2节中的另外一种表示
+Bcos(2xf;n + ) = αrcos 2 tfin + α2 sin 2nfin,我们有线性模型
+s[0]
+s[1]
+cos 2n fi
+sin 2元 f
+M+
+s[N - 1] cos[2afi(N -- 1)] sin[2fi(N - 1)]
+02
+现在检测问题重写如下：
+Ho : A = 0
+Hi: A≠ 0
+Ho : AF = 0
+H1 : AF + 0
+其中A=[1.00],GLRT由(7.35)式立即得出，
+TAT [A(HTH)-IAT]
+A01
+= (x)L
+其中,=(HH)-IH"x。但是，当f 不在0或1/2时,
+N-1
+N-1
+N-1
+Zs[n]
+Z s(n] cos 2n fin
+s[n] sin 2 fin
+n=0
+N--1
+0=4
+n=0
+HTH α
+Z s[n] cos 2 fin
+Ni2
+N-1
+Zs(n sin 2 fin
+n=0
+令 S。= Z=I s[ n ]cos2rfin 和 S, = N= s[ n]sin2rfin,

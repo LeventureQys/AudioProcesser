@@ -1,0 +1,49 @@
+102
+第一卷：统计信号处理基础一估计理论
+第二个分量除以(N-1),就可以得到，当然,T(x)和T(x)通过一一对应的变换建立起
+联系，这就再次说明充分统计量在这些变换里是惟一的，
+在断定是MVU估计量时，我们还没有证明统计量的完备性。由于高斯PDF是夫
+量指数类PDF中的一个特殊情况，已经知道在这种情况下是完备的[Kendall and Stuart
+1979]（对标量指数类PDF的定义请参见习题5.14)，因此就可以得出统计量是完备的。
+参考文献
+Hoel, P.G., S.C. Port, C.J. Stone, Introduction to Statistical Theory, Houghton Mifflin, Boston
+1971.
+Hoskins, R.F., Generatized Functions, J. Wiley, New York, 1979.
+Kendall, Sir M., A. Stuart, The Aduanced Theory of Statistics, Voi. 2, Macmillan, New York, 1979.
+Papoulis, A., Probabitity, Random Variables, and Stochastic Processes, McGraw-Hill, New York,
+1965.
+习题
+5.1
+对于例5.3,利用p(x1=[n]］=T;)与。 无关的定义,证明,[n］是²
+的充分统计量。提示:注意s="=［n}α² 是具有 N个自由度的chi平方分布,即
+exp
+2()
+0>S
+5.2 ID 观测 α[n](n =0,1,·,N-1)具有瑞利(Reyleigh)PDF
+x[n]
+1n
+exp
+r[n] >0
+p(r[nl; α?) =
+02
+n0
+求。的充分统计量，
+5.3 1
+IID观测x[J(n=0,1，··，N-1)具有指数 PDF
+[ xexp(-Ax[n])
+p(r[n]; A) =
+[n] >0
+z[n] < 0
+求入的充分统计量。
+5.4
+D观测x[n](n=0,1,..·,N-1)服从N(,9),其中>0。求 的充分统计量。
+5.5
+ID观测x[nJ(n=0,I，.·,N-1)服从u[-,其中 >0。求的充分统计量。
+5.6
+如果观测到x［n=A+w［n}(n=0,1，..,N-1),其中 wEn]是具有方差α²的 WGN,
+求。的MVU估计量，假定A是已知的。可以假定充分统计量是完备的。
+5.7
+考虑WCN中的i正弦信号的频率估计，即
+r[n] = cos 2πfon + w[n]
+n=0,1,...,N-1
+其中 wl n]是具有已知方差α²的WGN。证明,求一个f的充分统计量是不可能的。

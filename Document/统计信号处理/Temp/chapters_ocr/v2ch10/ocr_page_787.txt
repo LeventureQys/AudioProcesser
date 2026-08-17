@@ -1,0 +1,48 @@
+NP检测器对微弱信号的渐近性能
+附录10A
+由（10.10）式，我们有
+N-1
+d In p(r[nl)
+= (x)L
+s[n]
+dr(n]
+由于［]为D,因此随机变量－dinp（［］)/x［n}（n0,1，·.·，-)亦为ID。应用中
+心极限定理，可得T（x)为渐近高斯随机变量：我们仅需求其均值及方差。在H。条件下有
+dln p(r)
+d ln p(r[nl))
+p(r)de
+dr(n]
+dp(r)
+iα = p()= 0
+dr
+由于PDFp（)对于大的×时必须趋近于0,因此E（T();H）=0。在H条件下方差为
+N-1
+( d In p(r[n])
+var(T(x); Ho) = Z s
+s?[n]var
+de[n]
+n=0
+由于均值为零，所以我们有
+d In p(r[nl)
+d in p(αc)
+var
+p(a)dr
+da[n]
+dp(c)
+de
+(A)
+p(α)
+因此
+N-1
+var(T(x); Ho) = i(A) Z s[n)
+n=0
+在H条件下有
+d In p(r[nl)
+d ln p(r)
+p(α - As[nl)d
+da [n]
+dr
+对于小的A,我们可以在A=0处使用一阶泰勒级数展开，
+dp(r)
+p(r - As[nl) ~ p(r) -
+应用上式我们得

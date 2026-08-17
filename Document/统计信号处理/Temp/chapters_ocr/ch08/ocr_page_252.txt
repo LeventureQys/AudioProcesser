@@ -1,0 +1,21 @@
+附录8℃序贯最小二乘估计的推导
+237
+H'[n - 1]C-1[n - 1]x[n - 1] = Z-1[n - 1]0[n - 1]
+于是
+Jmin[n]  = Jmin[n - 1] -T[n - 1]Z-I[n - 1]K[nje[n]
+r[n] (1 - h [n]K[n])e[n]
+另外，
+[n] (1 - h" [n]K[n]) --  [n - 1]-1[n -- 1]K[n]
+T[n -- 1]h[n]
+n'[n][n -- 1]h[n]
+a[n] 
+[g[t - u[] +  -
+a +7[n]2[n - 1]h[n]
+r[n] - hT[n]e[n - 1]
+e[n]
+ + hT[n][n - 1]h[n]
+α + h7 [n][n - 1]h[n]
+因此，我们最终有
+e? [n]
+Jmin[n] = Jmin[n - 1] 
+2 + hT[n]2[n - 1]h[n]

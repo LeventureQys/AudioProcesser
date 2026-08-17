@@ -1,0 +1,37 @@
+748
+第二卷：统计信号处理基础一…--检测理论
+其中
+df
+Pww(f)
+囤此我们有
+TRr(x)
+= xTC-1(wo)H(HTC-1(Bw)H)-1HTC-1(wo)x
+xTC-1(Bu)HHTC-(@uo)x
+IIHTC-1(@o)x112 = [(hT C-1(@wo)x)2 + (hC-1(@u)x)
+i(h1 + jh2)TC-1(@ug)x)2
+hTC-1(@wo)x[2
+其中=h,+jh，β是由β得到的,丑β的P（)中使用了。而
+N-1
+N-1
+HTC-1(Owo)x:
+ww(fh)
+=0
+k=0
+X(f)$*(f)
+Pww(f)
+其中 S(f) =F Iexp[ j2元(fon +
+mn²)11。最后，对于在WSS随机噪声中线性FM信号的检测
+问题，我们有近似的Rao检验统计量
+X(f)s*()
+af
+Puw(f)
+ES(0)2
+df
+特别是对于AR模型，我们有
+TA(f)2
+所以，代人以后得
+Ao(f)X(f)(Ao(f)S(f))*
+df
+1Ao(f)S(f)2
+df
+根据Parseval定理，上式可近似为

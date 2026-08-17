@@ -1,0 +1,20 @@
+附录 12B
+动态规划的MATLAB程序
+823
+for n=k:N-1
+nn=n+1;
+Del=(x(nn:LL)-mean(x(nn: LL)))**(x(nn:LL)-mean(x(nn:LL))):
+J(nn)-I(kk-1,nn-1)+Del;
+end
+[Imin,ntrans(N-1,k)]=min(J(i:N));
+end
+end
+% Determine change times that minimize least squares error
+n2est=ntrans(N-1,3);
+nlest=ntrans(n2est-1,2) ;
+n0est-ntrans(nlest-1,1);
+Reference change times to [o,N-1] interval instead of
+MATLAB's [1,N]
+nOest=nOest-1
+nlest-nlest-1
+n2est=n2est-1

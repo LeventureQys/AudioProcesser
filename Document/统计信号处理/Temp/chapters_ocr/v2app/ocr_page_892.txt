@@ -1,0 +1,25 @@
+附录 1
+重要概念回顾
+877
+) = [1 + b[k] exp(-j2tfk)]
+k=1
+MA()过程的ACF为
+g[]
+[][ +]] ≤
+1=0
+[k] > q
+系统函数是
+H(z) = 1 +t
+k=1
+叫以看山它见由零点组成：尽管并不要求稳定，通常还是假定零点满足1z：1<1。这是因为零
+点z，和1/z两者都可以得出相同的PSD，这导致了过程参数的可识别问题。
+参考文献
+Graybill, F,A., Introduction to Matrices with Application in Statistics, Wadsworth, Belmont, Ca.,
+1969.
+Kay, S., Modern Spectrat Estimation: Theory and Application, Prentice-Hall, Englewood Cliffs,
+N.J., 1988.
+Noble, B., J.W. Daniel, Applied Linear Aigebra, Prentice-Hall, Englewood Cliffs, N.J., 1977.
+Oppenheim, A.V., R.W. Schafer, Digitai Signai Processing, Prentice-Hall, Englewood Cliffs, N.J..
+1975.
+Papoulis, A., Probability, Random Variables, and Stochastic Processes, McGraw-Hill, New York,
+1965.

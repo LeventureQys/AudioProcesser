@@ -1,0 +1,52 @@
+第9章矩方法
+249
+按(9.20)式给出的。的1000个现实进行蒙特卡洛计算机模拟。在图9.2(a)中，画出了得到的
+实际均值 E(磊)和 fa=0.2的理论均值与 SNR 的关系。对于高 SNR,正如预期的那样,估计基
+本上是无偏的。轻微的差异是在推导估计量时的近似所产生的，理论上，N足够大以至于可
+以忽略倍频项。可以证明对于高 SNR,对于大的 N值，均值等于真实的均值。
+图9.2(b)绘出了实际得到的方差和由(9.22)式得到的理论方差与SNR的关系曲线。很
+显然具有相同的特性。关于这个例子的更进一步讨论请参见习题9.13。关于这种估计方法
+的更深人讨论,读者可以参考[Lank et al,1973,Kay 1989]。
+0.220
+0.215
+0.210...
+实际的
+0.205
+0.200
+0.195 .
+理论的
+0.190
+-.10
+-5
+10
+15
+20
+SNR (dB)
+(a)
+-10.
+15
+-20.
+实际的
+-30-
+35-
+10 10ga方差
+-40 -
+-45 -
+理论的
+-50 
+-55-
+60
+.10
+-5
+10
+15
+20
+SNR (dB)
+(b)
+图9.2矩方法的频率估计量
+参考文献
+Kay, S., "A Fast and Accurate Single Frequency Estimator," IEEE Trans. Acoust., Speech, Signa!
+Process., Vol. 37, Pp. 1987-1990, Dec. 1989.
+Lank, G.W., I.S. Reed, G.E. Pollon, "A Semicoherent Detection and Doppler Estimation Statistic,"
+IEEE Tran.s. Aerosp. Flectron. Systems, Vol. 9, Pp. 151-165, March 1973.
+Rider, P.R., "Estimating the Parameters of Mixed Poisson, Binomial, and Weibull Distributions

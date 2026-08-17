@@ -1,0 +1,26 @@
+附录9C
+信号处理例子的渐近等效RaD检验
+749
+N-1
+IPAR
+IPAR
+ao[k]a[n -- ]
+ao[][n -
+=0
+1=0
+TR(x)
+T=PAR
+N-1
+IPAR
+T=PAR
+11=0
+另外,根据(9C.1)式，由于,=αα=A,那么非中心参量（H,）（）(H,)为
+S(f)12/A(f)I2
+ = 3T1 = A2
+df
+20
+由Parseval定理，对于大的N我们有
+42
+N-1
+IPAR
+N-PAR

@@ -1,0 +1,57 @@
+232
+第一卷：统计信号处理基础
+一估计理论
+E+ Hh*+1
+D,HTh+1
+DHTh++h+ H.D,HThk+1
+hT+,hk+1
+h++h*+1
+h++P+h++1ht++hk+1
+D,HThk+1 [h+;P+h#+1 + hT+(I - P+)hk+1]
+h++P+h++ihT++h++1
+D,Hhk+1
+hT++Pth+1
+最后，我们有
+D.HThe+thT+H,D.
+D,HTh++1
+h+P+h*+1
+h++P+hk+1
+××l
+D++1
+ht+, H.D.
+1× l×l
+hT+IP+h*+1
+h++P+h*+1
+为了求t！,我们利用前面的结果，
+D++1H+1x
+h#++X
+D,HTh+h+,H,DHTx
+D.H
+ht++P+h++1
+ht++P+h+1
+h+ HDHTx
+hT++X
+h+P+h*+1
+hT+IP+h++1
+DHh*+h+(x - HD,HTx)
+hT+P+h#+1
+hI+(x -- H,D,HTx)
+h+P+h*+1
+D:HThk+h$++P+x
+h+P+h++1
+h+P+x
+ht+,P+h#+1
+于是，最小LS误差的更新为
+Jmink+1
+(x - H++10++1)T(x - H+++0++1)
+Fx -- xTH++10+1
+D+HTh++1h++P+x
+h+P+h#+1
+×Tx-xT H h+
+h+,P+x
+h++P+h++1
+xTH,D+HTh*+1hT+IP+x
+ ×-TH+
+h+,PIhk+1
+hT+P+x
+++++P+hk+1
